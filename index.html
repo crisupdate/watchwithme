@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Watch Party</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#0a0a0f;color:#f0eeff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .25s,transform .25s;overflow:hidden}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(10px)}
+
+/* ── Setup ── */
+#setupScreen{padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));overflow-y:auto;gap:10px;display:flex;flex-direction:column}
+.logo{text-align:center;padding:10px 0 4px}
+.logo h1{font-size:1.45rem;font-weight:700;color:#a78bfa;margin-bottom:3px}
+.logo p{font-size:.75rem;color:#7a7a9a}
+.card{background:#13131a;border:0.5px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px}
+.lbl{font-size:.63rem;text-transform:uppercase;letter-spacing:.08em;color:#7a7a9a;margin-bottom:7px;font-weight:500}
+.field{display:flex;gap:7px;margin-bottom:8px}
+.field:last-child{margin-bottom:0}
+input{flex:1;background:rgba(255,255,255,.06);border:0.5px solid rgba(255,255,255,.1);border-radius:10px;color:#f0eeff;padding:9px 11px;font-size:.88rem;outline:none;min-width:0;-webkit-appearance:none}
+input:focus{border-color:#7c5cfc}
+input::placeholder{color:#4a4a6a}
+.btn{background:#7c5cfc;border:none;border-radius:10px;color:#fff;padding:9px 14px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;-webkit-appearance:none;transition:opacity .15s}
+.btn:active{opacity:.7}
+.btn.sec{background:rgba(255,255,255,.08);color:#f0eeff}
+.btn.full{width:100%;padding:13px;font-size:.93rem;border-radius:12px;margin-top:2px}
+.st{display:flex;align-items:center;gap:7px;font-size:.74rem;color:#7a7a9a;padding:7px 10px;background:rgba(255,255,255,.04);border-radius:10px;margin-top:7px}
+.sdot{width:6px;height:6px;border-radius:50%;background:#3a3a5a;flex-shrink:0;transition:background .3s}
+.sdok{background:#34d399!important}
+.sdsp{background:#fbbf24!important;animation:bl .9s infinite}
+.sder{background:#f87171!important}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+.room-code{font-family:monospace;font-size:1.25rem;letter-spacing:.14em;color:#a78bfa;text-align:center;padding:9px;background:rgba(124,92,252,.07);border-radius:10px;border:0.5px solid rgba(124,92,252,.2);cursor:pointer;user-select:all}
+.mrow{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.mchip{display:flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(255,255,255,.05);border-radius:20px;font-size:.72rem;color:rgba(255,255,255,.7)}
+.mchip .mdot{width:5px;height:5px;border-radius:50%;background:#34d399;flex-shrink:0}
+.kick{background:rgba(255,60,60,.15);border:none;border-radius:50%;width:14px;height:14px;cursor:pointer;color:rgba(255,100,100,.8);font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:2px}
+
+/* ── Player ── */
+#playerScreen{background:#000}
+.pwrap{flex:1;position:relative;overflow:hidden}
+.pwrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+
+/* Frosted glass bar */
+.fbar{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  gap:5px;padding:7px 10px;
+  padding-bottom:max(7px,env(safe-area-inset-bottom));
+  flex-shrink:0;
+  background:rgba(10,10,20,.55);
+  -webkit-backdrop-filter:saturate(180%) blur(28px);
+  backdrop-filter:saturate(180%) blur(28px);
+  border-top:0.5px solid rgba(255,255,255,.13);
+  box-shadow:inset 0 0.5px 0 rgba(255,255,255,.09);
+  transition:opacity .5s ease,transform .5s ease;
+}
+.fbar.fhidden{opacity:0;pointer-events:none;transform:translateY(12px)}
+.fbadge{font-size:10px;font-weight:600;color:rgba(255,255,255,.45);letter-spacing:.03em;white-space:nowrap;min-width:60px}
+.fsep{width:0.5px;height:15px;background:rgba(255,255,255,.13);flex-shrink:0;margin:0 1px}
+.fpill{background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:5px 9px;cursor:pointer;font-size:11px;font-weight:500;color:rgba(255,255,255,.7);white-space:nowrap;-webkit-appearance:none;transition:background .12s}
+.fpill:active{background:rgba(255,255,255,.22)}
+.fplay{background:rgba(255,255,255,.92);border:none;border-radius:50%;width:36px;height:36px;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#111;flex-shrink:0;-webkit-appearance:none;box-shadow:0 1px 6px rgba(0,0,0,.3);transition:transform .08s}
+.fplay:active{transform:scale(.86)}
+.fdot{width:6px;height:6px;border-radius:50%;background:#fbbf24;animation:bl .9s infinite;flex-shrink:0;transition:background .4s}
+.fpeople{background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:4px 8px;font-size:11px;font-weight:500;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:3px;cursor:pointer;-webkit-appearance:none;transition:background .12s}
+.fpeople:active,.fpeople.on{background:rgba(255,255,255,.2)}
+.ffs{background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:5px 9px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.7);display:flex;align-items:center;-webkit-appearance:none;transition:background .12s;line-height:1}
+.ffs:active{background:rgba(255,255,255,.2)}
+
+/* Members panel — pill style above bar */
+.mpanel{
+  position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:rgba(10,10,20,.55);
+  -webkit-backdrop-filter:saturate(180%) blur(28px);
+  backdrop-filter:saturate(180%) blur(28px);
+  border:0.5px solid rgba(255,255,255,.18);
+  border-radius:999px;padding:6px 14px;
+  display:none;flex-direction:row;align-items:center;gap:7px;flex-wrap:wrap;
+  box-shadow:0 2px 24px rgba(0,0,0,.45),inset 0 0.5px 0 rgba(255,255,255,.1);
+  z-index:10;min-width:0;max-width:90vw;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.mpanel.open{display:flex}
+.mptitle{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.3);font-weight:600;white-space:nowrap;flex-shrink:0}
+.mpsep{width:0.5px;height:15px;background:rgba(255,255,255,.13);flex-shrink:0}
+.mpchips{display:flex;flex-direction:row;align-items:center;gap:5px;flex-wrap:wrap}
+.mpchip{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap}
+.mpchip .mdot{width:5px;height:5px;border-radius:50%;background:#34d399;flex-shrink:0}
+.mpkick{background:rgba(255,60,60,.15);border:none;border-radius:50%;width:15px;height:15px;cursor:pointer;color:rgba(255,100,100,.8);font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mpkick:active{background:rgba(255,60,60,.4)}
+.mpclose{background:rgba(255,255,255,.08);border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;color:rgba(255,255,255,.5);font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:2px}
+.mpclose:active{background:rgba(255,255,255,.2)}
+
+.back{position:absolute;top:max(10px,env(safe-area-inset-top));left:10px;z-index:20;background:rgba(10,10,20,.65);border:0.5px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:12px;color:rgba(255,255,255,.65);cursor:pointer;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);-webkit-appearance:none}
+</style>
+</head>
+<body>
+
+<!-- Setup -->
+<div class="screen" id="setupScreen">
+  <div class="logo"><h1>🎬 Watch Party</h1><p>Frame-accurate sync across all devices</p></div>
+
+  <div class="card">
+    <div class="lbl">Your name</div>
+    <input id="nameIn" placeholder="Enter your name" maxlength="20" autocomplete="off"/>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Movie URL</div>
+    <input id="movieUrl" type="url" placeholder="https://api.ortified.ws/embed/movie/..." value="https://api.ortified.ws/embed/movie/42789" autocomplete="off"/>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Room code — share with your friend</div>
+    <div class="room-code" id="roomDisplay" onclick="copyRoom()">——————</div>
+    <div class="field" style="margin-top:9px">
+      <input id="joinIn" placeholder="Or paste friend's code to join" style="font-family:monospace;letter-spacing:.05em" autocomplete="off"/>
+      <button class="btn" onclick="joinRoom()">Join</button>
+    </div>
+    <div class="st"><div class="sdot sdsp" id="syncDot"></div><span id="syncTxt">Enter your name to connect</span></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Members in room</div>
+    <div class="mrow" id="mrow"><span style="font-size:.75rem;color:#4a4a6a">No one yet</span></div>
+  </div>
+
+  <button class="btn full" id="watchBtn" onclick="goWatch()">▶  Watch Movie</button>
+</div>
+
+<!-- Player -->
+<div class="screen hidden" id="playerScreen">
+  <button class="back" onclick="goSetup()">← Room</button>
+  <div class="pwrap" id="pwrap"></div>
+  <div class="fbar" id="fbar">
+    <div class="mpanel" id="mpanel">
+      <span class="mptitle">room</span>
+      <div class="mpsep"></div>
+      <div class="mpchips" id="mpchips"></div>
+      <button class="mpclose" onclick="togglePanel(event)">×</button>
+    </div>
+    <div class="fdot" id="fdot"></div>
+    <span class="fbadge" id="fbadge">——</span>
+    <div class="fsep"></div>
+    <button class="fpeople on" id="peopleBtn" onclick="togglePanel(event)">👥 <span id="fcount">1</span></button>
+    <div class="fsep"></div>
+    <button class="fpill" onclick="seekStart()">⏮</button>
+    <button class="fpill" onclick="seek(-30)">−30s</button>
+    <button class="fpill" onclick="seek(-10)">−10s</button>
+    <button class="fplay" id="playBtn" onclick="toggle()">▶</button>
+    <button class="fpill" onclick="seek(10)">+10s</button>
+    <button class="fpill" onclick="seek(30)">+30s</button>
+    <div class="fsep"></div>
+    <button class="ffs" id="fsBtn" onclick="toggleFS()" title="Fullscreen">⛶</button>
+  </div>
+</div>
+
+<script>
+/* ── Telegram ── */
+const tg=window.Telegram&&window.Telegram.WebApp;
+if(tg){tg.ready();tg.expand();tg.setHeaderColor&&tg.setHeaderColor('#0a0a0f');tg.setBackgroundColor&&tg.setBackgroundColor('#0a0a0f');}
+
+/* ── State ── */
+let roomId=Math.random().toString(36).slice(2,8).toUpperCase();
+let myName='',myPeerId='',isHost=false,peer=null;
+let conns={},members={},blacklist={};
+let BUFFER_MS=80,clockOffset=0,rttSamples=[],pingCount=0,pendingTimer=null;
+let remoteSeeking=false,panelOpen=false;
+let iframeEl=null;
+
+/* ── Screens ── */
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');}
+function goSetup(){showScreen('setupScreen');}
+function goWatch(){
+  myName=document.getElementById('nameIn').value.trim()||'Guest';
+  const url=document.getElementById('movieUrl').value.trim();
+  if(!url){document.getElementById('movieUrl').focus();return;}
+  if(isHost)sendAll({cmd:'movieurl',val:url});
+  showScreen('playerScreen');
+  loadIframe(url);
+}
+
+/* ── Room code ── */
+document.getElementById('roomDisplay').textContent=roomId;
+document.getElementById('fbadge').textContent=roomId;
+function copyRoom(){
+  navigator.clipboard.writeText(roomId).catch(()=>{});
+  document.getElementById('syncTxt').textContent='Copied!';
+  setTimeout(()=>updateSyncTxt(),1500);
+}
+function updateSyncTxt(){
+  const cnt=Object.keys(members).length;
+  document.getElementById('syncTxt').textContent=cnt>1?'Room '+roomId+' · '+cnt+' watching':'Room '+roomId+' · share this code';
+}
+
+/* ── Sync UI ── */
+function setSS(s,t){
+  document.getElementById('syncDot').className='sdot '+(s==='ok'?'sdok':s==='sp'?'sdsp':'sder');
+  document.getElementById('syncTxt').textContent=t;
+}
+function setFD(col,anim){
+  const d=document.getElementById('fdot');
+  d.style.background=col;
+  d.style.animation=anim?'bl .9s infinite':'none';
+}
+let flashT;
+function flash(msg){
+  const b=document.getElementById('fbadge');
+  b.textContent=msg||roomId;
+  if(!msg)return;
+  clearTimeout(flashT);
+  flashT=setTimeout(()=>{b.textContent=roomId;},2000);
+}
+
+/* ── Members ── */
+function renderMembers(){
+  const list=Object.values(members);
+  document.getElementById('fcount').textContent=list.length;
+
+  /* Setup screen list */
+  const mrow=document.getElementById('mrow');
+  if(!list.length){mrow.innerHTML='<span style="font-size:.75rem;color:#4a4a6a">No one yet</span>';}
+  else{
+    mrow.innerHTML='';
+    list.forEach(m=>{
+      const ch=document.createElement('div'); ch.className='mchip';
+      const dot=document.createElement('div'); dot.className='mdot';
+      const nm=document.createElement('span'); nm.textContent=m.name+(m.peerId===myPeerId?' (you)':'');
+      ch.appendChild(dot); ch.appendChild(nm);
+      if(isHost&&m.peerId!==myPeerId){
+        const kb=document.createElement('button'); kb.className='kick'; kb.textContent='✕';
+        kb.onclick=()=>removeMember(m.peerId); ch.appendChild(kb);
+      }
+      mrow.appendChild(ch);
+    });
+  }
+
+  /* Player panel chips */
+  const mpchips=document.getElementById('mpchips');
+  mpchips.innerHTML='';
+  list.forEach((m,i)=>{
+    if(i>0){const dv=document.createElement('div');dv.style.cssText='width:0.5px;height:13px;background:rgba(255,255,255,.12);flex-shrink:0';mpchips.appendChild(dv);}
+    const ch=document.createElement('div'); ch.className='mpchip';
+    const dot=document.createElement('div'); dot.className='mdot';
+    const nm=document.createElement('span'); nm.textContent=m.name+(m.peerId===myPeerId?' •':'');
+    ch.appendChild(dot); ch.appendChild(nm);
+    if(isHost&&m.peerId!==myPeerId){
+      const kb=document.createElement('button'); kb.className='mpkick'; kb.textContent='✕';
+      kb.onclick=e=>{e.stopPropagation();removeMember(m.peerId);}; ch.appendChild(kb);
+    }
+    mpchips.appendChild(ch);
+  });
+  updateSyncTxt();
+}
+
+function togglePanel(e){
+  if(e)e.stopPropagation();
+  panelOpen=!panelOpen;
+  document.getElementById('mpanel').classList.toggle('open',panelOpen);
+  document.getElementById('peopleBtn').classList.toggle('on',panelOpen);
+}
+document.addEventListener('click',e=>{
+  if(panelOpen&&!e.target.closest('#mpanel')&&!e.target.closest('#peopleBtn')){
+    panelOpen=false;
+    document.getElementById('mpanel').classList.remove('open');
+    document.getElementById('peopleBtn').classList.remove('on');
+  }
+});
+
+/* ── Iframe + Video ── */
+function loadIframe(url){
+  const wrap=document.getElementById('pwrap');
+  wrap.innerHTML='';
+  iframeEl=document.createElement('iframe');
+  iframeEl.src=url;
+  iframeEl.allow='autoplay; fullscreen';
+  iframeEl.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:none';
+  wrap.appendChild(iframeEl);
+  setTimeout(forceHQ,1500);setTimeout(forceHQ,4000);setTimeout(forceHQ,8000);
+  setTimeout(bindVideo,2000);setTimeout(bindVideo,5000);
+}
+
+function vid(){
+  try{return iframeEl&&iframeEl.contentDocument&&iframeEl.contentDocument.querySelector('video');}catch(e){return null;}
+}
+
+let videoBound=false;
+function bindVideo(){
+  const v=vid(); if(!v||videoBound) return;
+  videoBound=true;
+  v.removeAttribute('controls');
+  v.addEventListener('play',()=>{updatePlayBtn();maybeHide();});
+  v.addEventListener('pause',()=>{updatePlayBtn();showBar();});
+  v.addEventListener('waiting',()=>{if(!remoteSeeking)flash('⏳ buffering…');});
+  v.addEventListener('playing',()=>{flash('');});
+  /* Sync timeline scrub */
+  let seekDeb;
+  v.addEventListener('seeked',()=>{
+    if(remoteSeeking)return;
+    clearTimeout(seekDeb);
+    seekDeb=setTimeout(()=>{
+      const t=v.currentTime,wp=!v.paused,fa=Date.now()+BUFFER_MS;
+      sendAll({cmd:'seekplay',val:t,play:wp,at:fa});
+      flash('→ '+Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'));
+    },300);
+  });
+  /* Hide native player buttons */
+  try{
+    const doc=iframeEl.contentDocument;
+    const st=doc.createElement('style');
+    st.textContent='.button_1_n.iconMD_2O8{display:none!important}.button_1_n.icon_3ze{display:none!important}';
+    doc.head.appendChild(st);
+  }catch(e){}
+}
+
+function updatePlayBtn(){
+  const v=vid();
+  document.getElementById('playBtn').textContent=(v&&!v.paused)?'⏸':'▶';
+}
+setInterval(updatePlayBtn,500);
+
+function forceHQ(){
+  try{
+    const hls=window.Hls&&window.Hls.instances&&window.Hls.instances[0];
+    if(!hls||!hls.levels||!hls.levels.length)return;
+    let best=0;
+    for(let j=1;j<hls.levels.length;j++)if((hls.levels[j].bitrate||0)>(hls.levels[best].bitrate||0))best=j;
+    hls.currentLevel=best;hls.loadLevel=best;hls.nextLevel=best;
+    flash('HD·'+Math.round((hls.levels[best].bitrate||0)/1000)+'k');
+  }catch(e){}
+}
+
+/* ── Bar auto-hide ── */
+let hideTimer;
+function showBar(){document.getElementById('fbar').classList.remove('fhidden');clearTimeout(hideTimer);}
+function maybeHide(){
+  const v=vid();
+  if(v&&!v.paused)hideTimer=setTimeout(()=>document.getElementById('fbar').classList.add('fhidden'),2500);
+}
+document.getElementById('pwrap').addEventListener('touchstart',()=>{showBar();maybeHide();});
+document.getElementById('pwrap').addEventListener('mousemove',()=>{showBar();maybeHide();});
+
+/* ── Fullscreen ── */
+function toggleFS(){
+  const fs=document.fullscreenElement||document.webkitFullscreenElement;
+  if(fs){(document.exitFullscreen||document.webkitExitFullscreen).call(document);}
+  else{
+    const wrap=document.getElementById('pwrap');
+    const req=wrap.requestFullscreen||wrap.webkitRequestFullscreen;
+    if(req)req.call(wrap);
+  }
+}
+function updateFsBtn(){
+  const fs=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  document.getElementById('fsBtn').innerHTML=fs?'⊠':'⛶';
+}
+document.addEventListener('fullscreenchange',updateFsBtn);
+document.addEventListener('webkitfullscreenchange',updateFsBtn);
+
+/* ── Scheduled execution ── */
+function scheduleAt(ts,fn){clearTimeout(pendingTimer);const d=ts-Date.now();if(d<=0){fn();return;}pendingTimer=setTimeout(fn,d);}
+
+/* ── Video actions ── */
+function doPlay(){const v=vid();if(v)v.play().catch(()=>{});updatePlayBtn();}
+function doPause(){const v=vid();if(v)v.pause();updatePlayBtn();}
+function doJump(s,thenPlay){
+  const v=vid();if(!v)return;
+  remoteSeeking=true;v.pause();v.currentTime=s;
+  flash('⏳ buffering…');setFD('#f59e0b',true);
+  const onR=()=>{v.removeEventListener('canplay',onR);clearTimeout(bt);remoteSeeking=false;setFD('#34d399',false);if(thenPlay)v.play().catch(()=>{});updatePlayBtn();};
+  v.addEventListener('canplay',onR);
+  const bt=setTimeout(()=>{v.removeEventListener('canplay',onR);remoteSeeking=false;setFD('#34d399',false);if(thenPlay)v.play().catch(()=>{});updatePlayBtn();},6000);
+}
+
+/* ── Sync commands ── */
+function sendAll(msg,excl){Object.keys(conns).forEach(pid=>{if(pid!==excl&&conns[pid]&&conns[pid].open)conns[pid].send(msg);});}
+function sendTo(pid,msg){if(conns[pid]&&conns[pid].open)conns[pid].send(msg);}
+
+function toggle(){const v=vid();sendCmd(v&&!v.paused?'pause':'play');}
+function sendCmd(cmd){
+  const fa=Date.now()+BUFFER_MS,t=vid()?vid().currentTime:0;
+  sendAll({cmd,t,at:fa});
+  scheduleAt(fa,()=>{if(cmd==='play'){doPlay();}else{doPause();const v=vid();if(v&&t!=null)v.currentTime=t;}});
+  flash(cmd==='play'?'▶':'⏸');
+}
+function seek(delta){
+  const v=vid();if(!v)return;
+  const target=Math.max(0,v.currentTime+delta),wp=!v.paused,fa=Date.now()+BUFFER_MS;
+  sendAll({cmd:'seekplay',val:target,play:wp,at:fa});
+  scheduleAt(fa,()=>doJump(target,wp));
+  flash((delta>0?'+':'')+delta+'s');
+}
+function seekStart(){
+  const v=vid(),wp=v&&!v.paused,fa=Date.now()+BUFFER_MS;
+  sendAll({cmd:'seekplay',val:0,play:wp,at:fa});
+  scheduleAt(fa,()=>doJump(0,wp));
+  flash('⏮ start');
+}
+
+/* ── PeerJS ── */
+function removeMember(peerId){
+  blacklist[peerId]=true;
+  const n=(members[peerId]||{}).name;
+  if(n)blacklist['name:'+n]=true;
+  if(conns[peerId]&&conns[peerId].open)sendTo(peerId,{cmd:'kicked',val:peerId});
+  Object.keys(conns).forEach(pid=>{if(pid!==peerId&&conns[pid]&&conns[pid].open)conns[pid].send({cmd:'memberleft',val:peerId});});
+  setTimeout(()=>{if(conns[peerId]){try{conns[peerId].close();}catch(e){}delete conns[peerId];}delete members[peerId];renderMembers();},300);
+}
+
+function wireConn(c){
+  if(isHost&&blacklist[c.peer]){try{c.send({cmd:'kicked',val:c.peer});}catch(e){}setTimeout(()=>{try{c.close();}catch(e){}},200);return;}
+  conns[c.peer]=c;
+  c.on('open',()=>{
+    if(isHost&&blacklist[c.peer]){try{c.send({cmd:'kicked',val:c.peer});}catch(e){}setTimeout(()=>{try{c.close();}catch(e){}delete conns[c.peer];},200);return;}
+    setFD('#fbbf24',true);flash('measuring…');doPing();
+    c.send({cmd:'hello',name:myName,peerId:myPeerId});
+    if(isHost)c.send({cmd:'memberlist',members:Object.values(members)});
+  });
+  c.on('data',d=>execMsg(d,c.peer));
+  c.on('close',()=>{
+    const n=(members[c.peer]||{}).name||'Someone';
+    delete conns[c.peer];delete members[c.peer];renderMembers();
+    flash(n+' left');
+    if(!Object.keys(conns).length)setFD('#f87171',false);
+  });
+  c.on('error',()=>setFD('#f87171',false));
+}
+
+function execMsg(msg,from){
+  /* Host relays media commands */
+  if(isHost&&from){
+    if(['play','pause','seekplay'].indexOf(msg.cmd)!==-1)sendAll(msg,from);
+  }
+  const lf=msg.at-clockOffset;
+  if(msg.cmd==='play'){
+    scheduleAt(lf,()=>{doPlay();flash('▶');});
+  }else if(msg.cmd==='pause'){
+    scheduleAt(lf,()=>{doPause();const v=vid();if(v&&msg.t!=null)v.currentTime=msg.t;flash('⏸');});
+  }else if(msg.cmd==='seekplay'){
+    scheduleAt(lf,()=>doJump(msg.val,msg.play));
+  }else if(msg.cmd==='movieurl'){
+    document.getElementById('movieUrl').value=msg.val;
+    flash('movie synced');
+  }else if(msg.cmd==='hello'){
+    if(isHost&&(blacklist[msg.peerId]||blacklist['name:'+msg.name])){
+      sendTo(from,{cmd:'kicked',val:msg.peerId});
+      setTimeout(()=>{if(conns[from]){try{conns[from].close();}catch(e){}delete conns[from];}},200);
+      return;
+    }
+    members[msg.peerId]={peerId:msg.peerId,name:msg.name};
+    renderMembers();
+    if(isHost)sendAll({cmd:'memberlist',members:Object.values(members)});
+    flash(msg.name+' joined');setFD('#34d399',false);
+    setSS('ok','Room '+roomId+' · '+Object.keys(members).length+' watching');
+  }else if(msg.cmd==='memberlist'){
+    members={};msg.members.forEach(m=>members[m.peerId]=m);
+    members[myPeerId]={peerId:myPeerId,name:myName};
+    renderMembers();setFD('#34d399',false);
+    setSS('ok','Room '+roomId+' · '+Object.keys(members).length+' watching');
+  }else if(msg.cmd==='memberleft'){
+    delete members[msg.val];renderMembers();
+  }else if(msg.cmd==='kicked'){
+    if(msg.val===myPeerId){
+      Object.keys(conns).forEach(pid=>{try{conns[pid].close();}catch(e){}});
+      conns={};try{peer.destroy();}catch(e){}peer=null;
+      const v=vid();if(v)v.pause();
+      setSS('er','You were removed from this room');
+      setFD('#f87171',false);
+      flash('⛔ removed');
+      goSetup();
+    }else{delete members[msg.val];renderMembers();}
+  }else if(msg.cmd==='ping'){
+    sendTo(from,{cmd:'pong',sentAt:msg.sentAt,pongAt:Date.now()});
+  }else if(msg.cmd==='pong'){
+    const rtt=Date.now()-msg.sentAt;
+    clockOffset=msg.pongAt-(msg.sentAt+rtt/2);
+    rttSamples.push(rtt);if(rttSamples.length>5)rttSamples.shift();
+    const med=[...rttSamples].sort((a,b)=>a-b)[Math.floor(rttSamples.length/2)];
+    BUFFER_MS=Math.max(60,Math.round(med/2+30));
+    setFD('#34d399',false);flash('synced·'+med+'ms');
+    setSS('ok','Room '+roomId+' · synced · '+med+'ms');
+  }
+}
+
+function doPing(){sendAll({cmd:'ping',sentAt:Date.now()});pingCount++;setTimeout(doPing,pingCount<=3?80:4000);}
+
+function tryAsA(){
+  const p=new Peer(roomId+'_A',{debug:0});
+  p.on('open',()=>{
+    peer=p;myPeerId=p.id;isHost=true;
+    members[myPeerId]={peerId:myPeerId,name:myName};
+    renderMembers();
+    setFD('#fbbf24',true);flash('waiting…');
+    setSS('ok','Room '+roomId+' ready · share code');
+    p.on('connection',c=>wireConn(c));
+  });
+  p.on('error',e=>{if(e.type==='unavailable-id')tryAsB();else setSS('er','Error: '+e.type);});
+}
+function tryAsB(){
+  const gid=roomId+'_'+Math.random().toString(36).slice(2,5).toUpperCase();
+  const p=new Peer(gid,{debug:0});
+  p.on('open',()=>{
+    peer=p;myPeerId=p.id;isHost=false;
+    setFD('#fbbf24',true);flash('connecting…');
+    wireConn(p.connect(roomId+'_A',{reliable:true,serialization:'json'}));
+  });
+  p.on('error',e=>setSS('er','Error: '+e.type));
+}
+
+/* ── Join room ── */
+function joinRoom(){
+  const code=document.getElementById('joinIn').value.trim().toUpperCase();
+  if(!code)return;
+  if(peer){try{peer.destroy();}catch(e){}peer=null;conns={};members={};}
+  roomId=code;
+  document.getElementById('roomDisplay').textContent=roomId;
+  document.getElementById('fbadge').textContent=roomId;
+  startSession();
+}
+
+function startSession(){
+  myName=document.getElementById('nameIn').value.trim()||'Guest';
+  document.getElementById('fbadge').textContent=roomId;
+  setSS('sp','Connecting to room '+roomId+'…');
+  tryAsA();
+}
+
+/* ── Auto-start when name entered ── */
+let sessionStarted=false;
+document.getElementById('nameIn').addEventListener('blur',()=>{
+  if(document.getElementById('nameIn').value.trim()&&!sessionStarted){
+    sessionStarted=true;startSession();
+  }
+});
+
+/* ── Pre-fill from Telegram ── */
+if(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user){
+  const u=tg.initDataUnsafe.user;
+  const name=(u.first_name||'')+(u.last_name?' '+u.last_name:'');
+  if(name)document.getElementById('nameIn').value=name;
+}
+</script>
+</body>
+</html>
