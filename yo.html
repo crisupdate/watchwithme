@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -703,6 +703,1194 @@ function init(){
 })();`;
 
 document.getElementById('bmk').href = 'javascript:' + encodeURIComponent(BOOKMARKLET);
+</script>
+</body>
+</html> -->
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Watch a movie with me</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0f;color:#f0eeff;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem}
+h1{font-size:1.5rem;font-weight:700;color:#a78bfa;margin-bottom:.2rem}
+.sub{font-size:.82rem;color:#7a7a9a;margin-bottom:1.4rem;text-align:center}
+.card{background:#13131a;border:0.5px solid rgba(255,255,255,.08);border-radius:12px;padding:1.1rem 1.3rem;width:100%;max-width:560px;margin-bottom:.75rem}
+.lbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.08em;color:#7a7a9a;margin-bottom:.45rem;font-weight:500}
+.step{display:flex;gap:.65rem;align-items:flex-start;margin-bottom:.7rem;font-size:.83rem;line-height:1.6;color:#b0b0c8}
+.step:last-child{margin-bottom:0}
+.n{min-width:22px;height:22px;border-radius:50%;background:#7c5cfc;color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.bmk-wrap{background:#1c1c26;border:0.5px solid rgba(124,92,252,.35);border-radius:8px;padding:.85rem 1rem;margin:.6rem 0;display:flex;align-items:center;gap:.75rem}
+.bmk-wrap a{display:inline-block;background:#7c5cfc;color:#fff;padding:.5rem 1rem;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.bmk-wrap a:hover{background:#6a4ce0}
+.bmk-wrap p{font-size:.75rem;color:#7a7a9a;line-height:1.5}
+.movie-input{display:flex;gap:.5rem;align-items:center;margin:.6rem 0 .2rem;padding:.2rem 0}
+.movie-input input{flex:1;background:#1c1c26;border:0.5px solid rgba(255,255,255,.1);border-radius:8px;color:#f0eeff;padding:.55rem .8rem;font-size:.9rem;outline:none;font-family:inherit;letter-spacing:.02em;text-align:center;min-width:0}
+.movie-input input:focus{border-color:#7c5cfc}
+.movie-input button{background:#7c5cfc;border:none;border-radius:8px;color:#fff;padding:.6rem 1.1rem;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s;flex-shrink:0}
+.movie-input button:hover{background:#6a4ce0}
+.movie-input button:active{transform:scale(.97)}
+.row{display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem}
+input{flex:1;background:#1c1c26;border:0.5px solid rgba(255,255,255,.1);border-radius:8px;color:#f0eeff;padding:.55rem .8rem;font-size:.85rem;outline:none;font-family:monospace;letter-spacing:.05em}
+input:focus{border-color:#7c5cfc}
+input::placeholder{color:#3a3a5a}
+button{background:#7c5cfc;border:none;border-radius:8px;color:#fff;padding:.55rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+button:hover{background:#6a4ce0}
+.st{display:flex;align-items:center;gap:.4rem;font-size:.77rem;color:#7a7a9a;padding:.4rem .65rem;background:#1c1c26;border-radius:8px;margin-top:.5rem}
+.dot{width:6px;height:6px;border-radius:50%;background:#3a3a5a;flex-shrink:0}
+.ok{background:#34d399!important}
+.sp{background:#fbbf24!important;animation:bl .9s infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── Language toggle ── */
+.lang-toggle{position:fixed;top:max(.75rem,env(safe-area-inset-top));right:max(.75rem,env(safe-area-inset-right));display:inline-flex;background:rgba(28,28,38,.85);border:0.5px solid rgba(255,255,255,.1);border-radius:999px;padding:3px;gap:1px;z-index:100;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.lang-toggle button{background:transparent;border:none;color:#7a7a9a;font-size:.72rem;font-weight:700;letter-spacing:.06em;padding:.32rem .65rem;border-radius:999px;cursor:pointer;transition:all .15s;line-height:1}
+.lang-toggle button:hover{color:#f0eeff}
+.lang-toggle button.active{background:linear-gradient(135deg,#7c5cfc,#9b6ffe);color:#fff;box-shadow:0 1px 6px rgba(124,92,252,.4)}
+
+/* ── Improved landing styles ── */
+.hdr{text-align:center;margin-bottom:1.2rem;padding-top:.4rem}
+h1{font-size:1.6rem;font-weight:700;color:#a78bfa;margin-bottom:.3rem;letter-spacing:-.01em}
+.sub{font-size:.85rem;color:#7a7a9a;line-height:1.5;max-width:36rem;margin:0 auto}
+
+.step-head{display:flex;gap:.75rem;align-items:flex-start;margin-bottom:.85rem}
+.step-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#7c5cfc,#9b6ffe);color:#fff;font-size:.85rem;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(124,92,252,.35);margin-top:1px}
+.step-title{font-size:1rem;font-weight:600;color:#f0eeff;line-height:1.3}
+.step-hint{font-size:.75rem;color:#7a7a9a;margin-top:.15rem;line-height:1.4}
+.step-foot{font-size:.74rem;color:#7a7a9a;line-height:1.55;margin-top:.6rem}
+.step-foot code{background:#1c1c26;padding:1px 6px;border-radius:4px;font-family:ui-monospace,'SF Mono',monospace;font-size:.92em;color:#b0b0c8;letter-spacing:.02em}
+.step-foot.tip{background:rgba(124,92,252,.08);border:0.5px solid rgba(124,92,252,.2);border-radius:8px;padding:.6rem .75rem;margin-top:.75rem;color:#b0b0c8}
+
+.bmk-wrap{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(167,139,250,.08));border:0.5px solid rgba(124,92,252,.35);border-radius:10px;padding:1rem;margin:0;display:flex;align-items:center;gap:.85rem;transition:transform .15s,box-shadow .15s}
+.bmk-wrap:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(124,92,252,.18)}
+.bmk-wrap a{display:inline-flex;align-items:center;background:linear-gradient(135deg,#7c5cfc,#9b6ffe);color:#fff;padding:.55rem 1.1rem;border-radius:10px;font-size:.85rem;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0;cursor:grab;box-shadow:0 2px 10px rgba(124,92,252,.45);transition:transform .12s}
+.bmk-wrap a:active{cursor:grabbing;transform:scale(.97)}
+.bmk-wrap p{font-size:.78rem;color:#b0b0c8;line-height:1.5;margin:0}
+
+.help{margin-top:.7rem;font-size:.75rem;color:#7a7a9a}
+.help summary{cursor:pointer;padding:.35rem 0;color:#a78bfa;user-select:none;outline:none;transition:color .15s}
+.help summary:hover{color:#b8a4fa}
+.help p{margin-top:.4rem;line-height:1.5;color:#7a7a9a}
+.help kbd{background:#1c1c26;border:0.5px solid rgba(255,255,255,.12);border-radius:4px;padding:1px 6px;font-family:ui-monospace,'SF Mono',monospace;font-size:.8em;color:#d0c8ff;display:inline-block;margin:0 1px}
+
+.room-code-row{display:flex;gap:.5rem;align-items:stretch;margin-bottom:.2rem}
+.room-code-row input{flex:1;background:linear-gradient(135deg,rgba(124,92,252,.1),rgba(167,139,250,.05));border:0.5px solid rgba(124,92,252,.3);border-radius:10px;color:#a78bfa;padding:.7rem 1rem;font-size:1.4rem;outline:none;font-family:ui-monospace,'SF Mono',monospace;letter-spacing:.18em;text-align:center;font-weight:600;cursor:default}
+.copy-btn{background:rgba(124,92,252,.15);border:0.5px solid rgba(124,92,252,.35);border-radius:10px;color:#a78bfa;padding:.5rem .9rem;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.copy-btn:hover{background:rgba(124,92,252,.28);color:#fff}
+.copy-btn:active{transform:scale(.97)}
+
+.card.cta{background:linear-gradient(135deg,#13131a,#181826);border-color:rgba(124,92,252,.18)}
+.movie-input{display:flex;margin-bottom:.2rem}
+.movie-input input{flex:1;background:#1c1c26;border:0.5px solid rgba(255,255,255,.12);border-radius:10px;color:#f0eeff;padding:.7rem 1rem;font-size:1.1rem;outline:none;font-family:ui-monospace,'SF Mono',monospace;text-align:center;letter-spacing:.05em;transition:border-color .15s}
+.movie-input input:focus{border-color:#7c5cfc;background:#1f1f2c}
+
+.start-btn{width:100%;background:linear-gradient(135deg,#7c5cfc,#9b6ffe);border:none;border-radius:12px;color:#fff;padding:.95rem;font-size:1rem;font-weight:700;cursor:pointer;margin-top:.85rem;box-shadow:0 4px 16px rgba(124,92,252,.35);transition:all .15s;letter-spacing:.01em}
+.start-btn:hover{box-shadow:0 6px 20px rgba(124,92,252,.5);transform:translateY(-1px)}
+.start-btn:active{transform:translateY(0) scale(.99)}
+
+/* ── Landing-page responsive tweaks ── */
+body{padding:max(1.2rem, env(safe-area-inset-top)) 1rem max(1.5rem, env(safe-area-inset-bottom)) 1rem}
+@media (max-width: 600px){
+  body{padding:1rem .75rem 1.5rem}
+  h1{font-size:1.35rem}
+  .sub{font-size:.78rem;margin-bottom:1rem}
+  .card{padding:1rem;border-radius:12px;margin-bottom:.7rem}
+  .step-num{width:26px;height:26px;font-size:.78rem}
+  .step-title{font-size:.92rem}
+  .step-hint{font-size:.72rem}
+  .step-foot{font-size:.72rem}
+  .bmk-wrap{flex-direction:column;align-items:stretch;gap:.6rem;padding:.85rem}
+  .bmk-wrap a{width:100%;justify-content:center;padding:.65rem 1rem}
+  .bmk-wrap p{font-size:.74rem;text-align:center}
+  .room-code-row input{font-size:1.2rem;padding:.6rem .8rem}
+  .movie-input input{font-size:1rem;padding:.6rem .8rem}
+  .start-btn{padding:.85rem;font-size:.95rem}
+  input{min-width:0}
+}
+@media (max-width: 380px){
+  h1{font-size:1.2rem}
+  .step{font-size:.75rem}
+  .lbl{font-size:.6rem}
+  input,button{font-size:.78rem}
+  .row{flex-direction:column;align-items:stretch}
+  .row button{width:100%}
+}
+@media (orientation: landscape) and (max-height: 500px){
+  body{padding:.6rem .75rem 1rem}
+  h1{font-size:1.15rem;margin-bottom:0}
+  .sub{margin-bottom:.7rem}
+  .card{padding:.7rem 1rem;margin-bottom:.5rem}
+  .step{margin-bottom:.4rem}
+}
+</style>
+</head>
+<body>
+<div class="lang-toggle" role="group" aria-label="Language">
+  <button data-lang="en" class="active" onclick="setLang('en')">EN</button>
+  <button data-lang="ru" onclick="setLang('ru')">RU</button>
+</div>
+<header class="hdr">
+  <h1>🎬 <span data-i18n="title">Watch a movie with me</span></h1>
+  <p class="sub" data-i18n="subtitle">Sync any movie with your friends — frame-accurate playback in real time</p>
+</header>
+
+<div class="card">
+  <div class="step-head">
+    <span class="step-num">1</span>
+    <div>
+      <div class="step-title" data-i18n="s1_title">Add the WatchWithMe button</div>
+      <div class="step-hint" data-i18n="s1_hint">One-time setup · works for every movie afterward</div>
+    </div>
+  </div>
+  <div class="bmk-wrap">
+    <a id="bmk" href="#" title="Drag me to your bookmarks bar">⚡ WatchWithMe</a>
+    <p data-i18n="s1_desc">Drag this button up to your <strong style="color:#f0eeff">bookmarks bar</strong>. You'll click it later to turn on sync.</p>
+  </div>
+  <details class="help">
+    <summary data-i18n="s1_help_q">Don't see your bookmarks bar?</summary>
+    <p data-i18n="s1_help_a">Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows/Linux, or <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Mac, to show it.</p>
+  </details>
+</div>
+
+<div class="card">
+  <div class="step-head">
+    <span class="step-num">2</span>
+    <div>
+      <div class="step-title" data-i18n="s2_title">Share your room code</div>
+      <div class="step-hint" data-i18n="s2_hint">Send this to anyone you want to watch with</div>
+    </div>
+  </div>
+  <div class="room-code-row">
+    <input id="roomBox" readonly value="——"/>
+    <button class="copy-btn" onclick="copyRoom(this)"><span data-i18n="copy">📋 Copy</span></button>
+  </div>
+  <p class="step-foot" data-i18n="s2_foot">Joining a friend instead? Skip this — you'll type their code on the movie page when the bookmarklet asks.</p>
+</div>
+
+<div class="card cta">
+  <div class="step-head">
+    <span class="step-num">3</span>
+    <div>
+      <div class="step-title" data-i18n="s3_title">Open the movie</div>
+      <div class="step-hint" data-i18n="s3_hint">Enter the ID from the URL · everyone watching must use the same one</div>
+    </div>
+  </div>
+  <div class="movie-input">
+    <input id="movieId" type="text" inputmode="numeric" placeholder="42789" value="42789" aria-label="Movie ID"/>
+  </div>
+  <p class="step-foot"><span data-i18n="s3_url">Find the ID at the end of</span> <code>api.ortified.ws/embed/movie/<strong>XXXXX</strong></code></p>
+  <button class="start-btn" onclick="startWatching()">▶  <span data-i18n="start">Start watching</span></button>
+  <p class="step-foot tip" data-i18n="s3_tip">Once the movie opens, click <strong style="color:#f0eeff">⚡ WatchWithMe</strong> in your bookmarks bar and enter the room code shown above</p>
+</div>
+
+<script>
+/* ─── Translation dictionary (page) ─── */
+const I18N = {
+  en: {
+    title: 'Watch a movie with me',
+    subtitle: 'Sync any movie with your friends — frame-accurate playback in real time',
+    s1_title: 'Add the WatchWithMe button',
+    s1_hint: 'One-time setup · works for every movie afterward',
+    s1_desc: 'Drag this button up to your <strong style="color:#f0eeff">bookmarks bar</strong>. You\'ll click it later to turn on sync.',
+    s1_help_q: "Don't see your bookmarks bar?",
+    s1_help_a: 'Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Windows/Linux, or <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> on Mac, to show it.',
+    s2_title: 'Share your room code',
+    s2_hint: 'Send this to anyone you want to watch with',
+    copy: '📋 Copy',
+    copied: '✓ Copied!',
+    s2_foot: 'Joining a friend instead? Skip this — you\'ll type their code on the movie page when the bookmarklet asks.',
+    s3_title: 'Open the movie',
+    s3_hint: 'Enter the ID from the URL · everyone watching must use the same one',
+    s3_url: 'Find the ID at the end of',
+    start: 'Start watching',
+    s3_tip: 'Once the movie opens, click <strong style="color:#f0eeff">⚡ WatchWithMe</strong> in your bookmarks bar and enter the room code shown above',
+    invalid_id: 'Enter a numeric movie ID'
+  },
+  ru: {
+    title: 'Посмотри фильм со мной',
+    subtitle: 'Синхронизированный просмотр фильмов с друзьями — кадр-в-кадр в реальном времени',
+    s1_title: 'Добавь кнопку WatchWithMe',
+    s1_hint: 'Один раз настроил · работает для всех фильмов потом',
+    s1_desc: 'Перетащи эту кнопку на <strong style="color:#f0eeff">панель закладок</strong>. Нажмёшь её позже, чтобы включить синхронизацию.',
+    s1_help_q: 'Не видишь панель закладок?',
+    s1_help_a: 'Нажми <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> на Windows/Linux, или <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> на Mac, чтобы показать её.',
+    s2_title: 'Поделись кодом комнаты',
+    s2_hint: 'Отправь его всем, с кем хочешь смотреть',
+    copy: '📋 Копировать',
+    copied: '✓ Скопировано!',
+    s2_foot: 'Присоединяешься к другу? Пропусти этот шаг — введёшь его код на странице фильма, когда букмарклет спросит.',
+    s3_title: 'Открой фильм',
+    s3_hint: 'Введи ID из ссылки · у всех зрителей должен быть одинаковый',
+    s3_url: 'Найди ID в конце ссылки',
+    start: 'Начать просмотр',
+    s3_tip: 'Когда фильм откроется, нажми <strong style="color:#f0eeff">⚡ WatchWithMe</strong> на панели закладок и введи код комнаты сверху',
+    invalid_id: 'Введи числовой ID фильма'
+  }
+};
+
+let currentLang = (function(){
+  try { return localStorage.getItem('wp_lang') || (navigator.language||'').slice(0,2).toLowerCase(); } catch(e){ return 'en'; }
+})();
+if(currentLang !== 'ru') currentLang = 'en';
+
+function setLang(lang){
+  if(lang !== 'en' && lang !== 'ru') lang = 'en';
+  currentLang = lang;
+  try { localStorage.setItem('wp_lang', lang); } catch(e){}
+  document.documentElement.lang = lang;
+  /* Update all marked elements */
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if(I18N[lang][k] != null) el.innerHTML = I18N[lang][k];
+  });
+  /* Toggle button active state */
+  document.querySelectorAll('.lang-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+  /* Rebuild bookmarklet so its baked-in language matches */
+  if(typeof buildBookmarklet === 'function') buildBookmarklet();
+}
+
+const roomId = Math.random().toString(36).slice(2,8).toUpperCase();
+document.getElementById('roomBox').value = roomId;
+function startWatching(){
+  var id = (document.getElementById('movieId').value || '').trim();
+  if(!/^\d+$/.test(id)){ alert(I18N[currentLang].invalid_id); return; }
+  window.open('https://api.ortified.ws/embed/movie/' + encodeURIComponent(id), '_blank');
+}
+
+function copyRoom(btn){
+  navigator.clipboard.writeText(roomId).catch(()=>{});
+  var inner = btn.querySelector('[data-i18n]') || btn;
+  var origText = inner.innerHTML;
+  inner.innerHTML = I18N[currentLang].copied;
+  btn.style.background='rgba(52,211,153,.18)';
+  btn.style.borderColor='rgba(52,211,153,.4)';
+  btn.style.color='#34d399';
+  setTimeout(function(){
+    inner.innerHTML = origText;
+    btn.style.background='';
+    btn.style.borderColor='';
+    btn.style.color='';
+  }, 1800);
+}
+
+const BOOKMARKLET = `(function(){
+if(window.__wp && !window.__wpKicked){ alert((window.__wpLangAlready||'WatchWithMe active! Room: ')+window.__wpRoom); return; }
+/* If kicked, clean up old bar/panel before restarting */
+if(window.__wpKicked){
+  window.__wp=false;
+  window.__wpKicked=false;
+  var oldBar=document.getElementById('__wpbar');
+  if(oldBar) oldBar.parentNode.removeChild(oldBar);
+  var oldPanel=document.getElementById('__wppanel');
+  if(oldPanel) oldPanel.parentNode.removeChild(oldPanel);
+  var oldWrap=document.getElementById('__wpwrap');
+  if(oldWrap && oldWrap.parentNode){
+    while(oldWrap.firstChild) oldWrap.parentNode.insertBefore(oldWrap.firstChild,oldWrap);
+    oldWrap.parentNode.removeChild(oldWrap);
+  }
+}
+window.__wp=true;
+
+var s=document.createElement('script');
+s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+s.onload=init;
+s.onerror=function(){ alert(T('no_peerjs')); window.__wp=false; };
+document.head.appendChild(s);
+
+function init(){
+  /* Language baked in by the page; falls back to navigator.language for old bookmarklets */
+  var L = '__LANG__';
+  if(L !== 'ru' && L !== 'en'){
+    L = (navigator.language||'').slice(0,2).toLowerCase() === 'ru' ? 'ru' : 'en';
+  }
+  var TR = {
+    en: {
+      room_prompt: 'Room code:',
+      name_prompt: 'Your name:',
+      no_peerjs: 'Could not load PeerJS.',
+      already: 'WatchWithMe active! Room: ',
+      waiting: 'waiting\u2026',
+      connecting: 'connecting\u2026',
+      measuring: 'measuring\u2026',
+      starting: 'starting\u2026',
+      buffering: '\u23f3 buffering\u2026',
+      synced: 'synced',
+      joined: ' joined',
+      left: ' left',
+      start_lbl: '\u23ee start',
+      removed: 'Removed from room \u00b7 click \u26a1 WatchWithMe to join another',
+      you: ' (you)',
+      err_prefix: 'err:',
+      remove_tip: 'Remove '
+    },
+    ru: {
+      room_prompt: 'Код комнаты:',
+      name_prompt: 'Твоё имя:',
+      no_peerjs: 'Не удалось загрузить PeerJS.',
+      already: 'WatchWithMe уже работает! Комната: ',
+      waiting: 'ждём\u2026',
+      connecting: 'соединение\u2026',
+      measuring: 'проверка\u2026',
+      starting: 'запуск\u2026',
+      buffering: '\u23f3 буферизация\u2026',
+      synced: 'синхрон',
+      joined: ' зашёл',
+      left: ' вышел',
+      start_lbl: '\u23ee к началу',
+      removed: 'Тебя удалили из комнаты \u00b7 нажми \u26a1 WatchWithMe чтобы зайти в другую',
+      you: ' (вы)',
+      err_prefix: 'ошибка:',
+      remove_tip: 'Удалить '
+    }
+  };
+  var T = function(k){ return (TR[L]||TR.en)[k] || k; };
+
+  var ROOM=prompt(T('room_prompt'),'').trim().toUpperCase();
+  if(!ROOM){ window.__wp=false; return; }
+  var NAME=(prompt(T('name_prompt'),'')||'Guest').trim().slice(0,20)||'Guest';
+  window.__wpRoom=ROOM;
+  window.__wpName=NAME;
+
+  var BUFFER_MS=80, clockOffset=0, rttSamples=[];
+  var pendingTimer=null, peer=null;
+  var isPlaying=false, remoteSeeking=false;
+  var isHost=false, myPeerId='';
+  var conns={}, members={}, blacklist={};
+  var membersEl=null, countEl=null, panel=null, panelVisible=false;
+  var pingCount=0;
+
+  /* ── Video controls ── */
+  function vid(){ return document.querySelector('video'); }
+  function doPlay(){ var v=vid(); if(v){ isPlaying=true; v.play().catch(function(){}); } }
+  function doPause(){ var v=vid(); if(v){ isPlaying=false; v.pause(); } }
+  function doToggle(){ var v=vid(); if(!v) return; if(v.paused) doPlay(); else doPause(); }
+
+  function doJump(s, thenPlay){
+    var v=vid(); if(!v) return;
+    remoteSeeking=true;
+    var wasPlaying=!v.paused;
+    v.pause();
+    v.currentTime=s;
+    flash(T('buffering'));
+    setDot('#f59e0b',true);
+    function onReady(){
+      v.removeEventListener('canplay',onReady);
+      clearTimeout(bufTimer);
+      remoteSeeking=false;
+      setDot('#34d399',false);
+      if(thenPlay||wasPlaying){ v.play().catch(function(){}); isPlaying=true; updateBtn(); }
+    }
+    v.addEventListener('canplay',onReady);
+    var bufTimer=setTimeout(function(){
+      v.removeEventListener('canplay',onReady);
+      remoteSeeking=false;
+      setDot('#34d399',false);
+      if(thenPlay||wasPlaying){ v.play().catch(function(){}); isPlaying=true; updateBtn(); }
+    },6000);
+  }
+
+  /* ── Scheduled execution ── */
+  function scheduleAt(localTs,fn){
+    clearTimeout(pendingTimer);
+    var d=localTs-Date.now();
+    if(d<=0){ fn(); return; }
+    pendingTimer=setTimeout(fn,d);
+  }
+
+  /* ── Networking ── */
+  function send(msg, excludeId){
+    Object.keys(conns).forEach(function(pid){
+      if(pid!==excludeId && conns[pid] && conns[pid].open) conns[pid].send(msg);
+    });
+  }
+
+  function broadcast(msg, excludeId){ send(msg, excludeId); }
+
+  function removeMember(peerId){
+    /* Blacklist by peer ID and by name */
+    blacklist[peerId]=true;
+    var kickedName=(members[peerId]||{}).name;
+    if(kickedName) blacklist['name:'+kickedName]=true;
+    /* Tell that specific peer they are kicked BEFORE closing */
+    if(conns[peerId] && conns[peerId].open){
+      try{ conns[peerId].send({cmd:'kicked',val:peerId}); }catch(e){}
+    }
+    /* Tell all OTHER peers to remove this member from their list */
+    Object.keys(conns).forEach(function(pid){
+      if(pid!==peerId && conns[pid] && conns[pid].open){
+        try{ conns[pid].send({cmd:'memberleft',val:peerId}); }catch(e){}
+      }
+    });
+    /* Now close the kicked peer's connection */
+    setTimeout(function(){
+      if(conns[peerId]){ try{ conns[peerId].close(); }catch(e){} delete conns[peerId]; }
+      delete members[peerId];
+      renderMembers();
+    }, 300);
+  }
+
+  function renderMembers(){
+    if(!membersEl||!countEl) return;
+    var list=Object.values(members);
+    countEl.textContent=list.length;
+    membersEl.innerHTML='';
+    list.forEach(function(m,i){
+      if(i>0){
+        var dv=document.createElement('div');
+        dv.style.cssText='width:0.5px;height:14px;background:rgba(255,255,255,.12);flex-shrink:0';
+        membersEl.appendChild(dv);
+      }
+      var chip=document.createElement('div');
+      chip.style.cssText='display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap';
+      var d2=document.createElement('div');
+      d2.style.cssText='width:5px;height:5px;border-radius:50%;background:#34d399;flex-shrink:0';
+      var nm=document.createElement('span');
+      nm.textContent=m.name+(m.peerId===myPeerId?' •':'');
+      chip.appendChild(d2);
+      chip.appendChild(nm);
+      if(isHost && m.peerId!==myPeerId){
+        var kb=document.createElement('button');
+        kb.textContent='✕';
+        kb.title=T('remove_tip')+m.name;
+        kb.style.cssText='background:rgba(255,60,60,.15);border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;color:rgba(255,100,100,.8);font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s;line-height:1';
+        kb.onmouseover=function(){ kb.style.background='rgba(255,60,60,.35)'; };
+        kb.onmouseout=function(){ kb.style.background='rgba(255,60,60,.15)'; };
+        kb.onclick=(function(pid){ return function(e){ e.stopPropagation(); removeMember(pid); }; })(m.peerId);
+        chip.appendChild(kb);
+      }
+      membersEl.appendChild(chip);
+    });
+  }
+
+  function addMember(peerId, name){
+    members[peerId]={peerId:peerId,name:name};
+    renderMembers();
+  }
+
+  function wireConn(c){
+    /* Reject blacklisted peers immediately */
+    if(isHost && blacklist[c.peer]){
+      try{ c.send({cmd:'kicked',val:c.peer}); }catch(e){}
+      setTimeout(function(){ try{ c.close(); }catch(e){} }, 200);
+      return;
+    }
+    conns[c.peer]=c;
+    c.on('open',function(){
+      /* Double-check blacklist on open (connection may have been queued) */
+      if(isHost && blacklist[c.peer]){
+        try{ c.send({cmd:'kicked',val:c.peer}); }catch(e){}
+        setTimeout(function(){ try{ c.close(); }catch(e){} delete conns[c.peer]; }, 200);
+        return;
+      }
+      setDot('#fbbf24',true); flash(T('measuring')); doPing();
+      c.send({cmd:'hello',name:NAME,peerId:myPeerId});
+      if(isHost) c.send({cmd:'memberlist',members:Object.values(members)});
+    });
+    c.on('data',function(d){ execMsg(d,c.peer); });
+    c.on('close',function(){
+      delete conns[c.peer];
+      var mname=(members[c.peer]||{}).name||c.peer;
+      delete members[c.peer];
+      renderMembers();
+      flash(mname+T('left'));
+      if(Object.keys(conns).length===0){ setDot('#f87171',false); }
+    });
+    c.on('error',function(){ setDot('#f87171',false); });
+  }
+
+  function execMsg(msg, fromPeerId){
+    /* Host relays media commands to all other peers */
+    if(isHost && fromPeerId){
+      var mc=['play','pause','jumpto','seekplay']; /* kicked/memberleft handled separately */
+      if(mc.indexOf(msg.cmd)!==-1) broadcast(msg,fromPeerId);
+    }
+    var localFireAt=msg.at-clockOffset;
+    if(msg.cmd==='play'){
+      scheduleAt(localFireAt,function(){ doPlay(); updateBtn(); flash('\\u25b6'); });
+    } else if(msg.cmd==='pause'){
+      scheduleAt(localFireAt,function(){ doPause(); if(msg.t!=null && vid()) vid().currentTime=msg.t; updateBtn(); flash('\\u23f8'); });
+    } else if(msg.cmd==='seekplay'){
+      scheduleAt(localFireAt,function(){ doJump(msg.val,msg.play); });
+    } else if(msg.cmd==='jumpto'){
+      scheduleAt(localFireAt,function(){ doJump(msg.val,msg.play); });
+    } else if(msg.cmd==='hello'){
+      /* If host has blacklisted this peer ID or their name, reject */
+      if(isHost && (blacklist[msg.peerId] || blacklist['name:'+msg.name])){
+        send({cmd:'kicked',val:msg.peerId||myPeerId});
+        setTimeout(function(){ if(conns[fromPeerId]){ try{ conns[fromPeerId].close(); }catch(e){} delete conns[fromPeerId]; } },200);
+        return;
+      }
+      addMember(msg.peerId,msg.name);
+      if(isHost) broadcast({cmd:'memberlist',members:Object.values(members)});
+      flash(msg.name+T('joined'));
+      setDot('#34d399',false);
+    } else if(msg.cmd==='memberlist'){
+      members={};
+      msg.members.forEach(function(m){ members[m.peerId]=m; });
+      members[myPeerId]={peerId:myPeerId,name:NAME};
+      renderMembers();
+      setDot('#34d399',false);
+    } else if(msg.cmd==='memberleft'){
+      /* Another peer was removed — just update our member list */
+      delete members[msg.val];
+      renderMembers();
+    } else if(msg.cmd==='kicked'){
+      if(msg.val===myPeerId){
+        /* Destroy everything — no reconnection possible */
+        window.__wpKicked=true;
+        /* Close all connections */
+        Object.keys(conns).forEach(function(pid){ try{ conns[pid].close(); }catch(e){} });
+        conns={};
+        /* Destroy peer so they can't reconnect */
+        try{ peer.destroy(); }catch(e){}
+        peer=null;
+        /* Stop the video */
+        var v=vid(); if(v) v.pause();
+        /* Remove panel */
+        if(panel){ try{ panel.parentNode.removeChild(panel); }catch(e){} }
+        /* Show kicked message — clicking bookmarklet again lets them join a new room */
+        bar.innerHTML='';
+        bar.style.cssText=[
+          'position:fixed','bottom:24px','left:50%','transform:translateX(-50%)',
+          'background:rgba(10,10,20,.52)',
+          '-webkit-backdrop-filter:saturate(180%) blur(28px)',
+          'backdrop-filter:saturate(180%) blur(28px)',
+          'border:0.5px solid rgba(255,80,80,.4)',
+          'border-radius:999px','padding:8px 18px',
+          'z-index:2147483647','display:flex','align-items:center','gap:8px',
+          'font-family:-apple-system,BlinkMacSystemFont,sans-serif',
+          'box-shadow:0 2px 24px rgba(0,0,0,.45)'
+        ].join(';');
+        var kDot=document.createElement('div');
+        kDot.style.cssText='width:6px;height:6px;border-radius:50%;background:#f87171;flex-shrink:0';
+        var kMsg=document.createElement('span');
+        kMsg.style.cssText='font-size:11px;font-weight:500;color:rgba(255,150,150,.9);white-space:nowrap';
+        kMsg.textContent=T('removed');
+        bar.appendChild(kDot);
+        bar.appendChild(kMsg);
+        window.__wp=true;
+        window.__wpKicked=true;        return;
+      }
+      delete members[msg.val];
+      renderMembers();
+    } else if(msg.cmd==='reaction'){
+      showReaction(msg.emoji, msg.name);
+    } else if(msg.cmd==='ping'){
+      send({cmd:'pong',sentAt:msg.sentAt,pongAt:Date.now()});
+    } else if(msg.cmd==='pong'){
+      var rtt=Date.now()-msg.sentAt;
+      clockOffset=msg.pongAt-(msg.sentAt+rtt/2);
+      rttSamples.push(rtt);
+      if(rttSamples.length>5) rttSamples.shift();
+      var sorted=rttSamples.slice().sort(function(a,b){return a-b;});
+      var med=sorted[Math.floor(sorted.length/2)];
+      BUFFER_MS=Math.max(60,Math.round(med/2+30));
+      setDot('#34d399',false);
+      flash(T('synced')+' \\u00b7 '+med+'ms');
+    }
+  }
+
+  function doPing(){
+    send({cmd:'ping',sentAt:Date.now()});
+    pingCount++;
+    setTimeout(doPing, pingCount<=3?80:4000);
+  }
+
+  function sendCmd(cmd,val){
+    var fireAt=Date.now()+BUFFER_MS;
+    var t=vid()?vid().currentTime:0;
+    send({cmd:cmd,val:val,at:fireAt,t:t});
+    scheduleAt(fireAt,function(){
+      if(cmd==='play'){ doPlay(); updateBtn(); }
+      else if(cmd==='pause'){ doPause(); if(vid()) vid().currentTime=t; updateBtn(); }
+    });
+    flash(cmd==='play'?'\\u25b6':'\\u23f8');
+  }
+
+  function sendSeek(delta){
+    var v=vid(); if(!v) return;
+    var wasPlaying=!v.paused;
+    var target=Math.max(0,v.currentTime+delta);
+    var fireAt=Date.now()+BUFFER_MS;
+    send({cmd:'seekplay',val:target,play:wasPlaying,at:fireAt});
+    scheduleAt(fireAt,function(){ doJump(target,wasPlaying); });
+    flash((delta>0?'+':'')+delta+'s');
+  }
+
+  function tryAsA(){
+    var p=new Peer(ROOM+'_A',{debug:0});
+    p.on('open',function(){
+      peer=p; myPeerId=p.id; isHost=true;
+      members[myPeerId]={peerId:myPeerId,name:NAME};
+      renderMembers();
+      setDot('#fbbf24',true); flash(T('waiting'));
+      p.on('connection',function(c){ wireConn(c); });
+    });
+    p.on('error',function(e){ if(e.type==='unavailable-id') tryAsB(); else flash(T('err_prefix')+e.type); });
+  }
+  function tryAsB(){
+    var gid=ROOM+'_'+Math.random().toString(36).slice(2,5).toUpperCase();
+    var p=new Peer(gid,{debug:0});
+    p.on('open',function(){
+      peer=p; myPeerId=p.id; isHost=false;
+      setDot('#fbbf24',true); flash(T('connecting'));
+      wireConn(p.connect(ROOM+'_A',{reliable:true,serialization:'json'}));
+    });
+    p.on('error',function(e){ flash(T('err_prefix')+e.type); });
+  }
+
+  /* ── CSS ── */
+  var styleEl=document.createElement('style');
+  styleEl.textContent=[
+    '.button_1_n.iconMD_2O8{display:none!important}',
+    '.button_1_n.icon_3ze{display:none!important}',
+    ':fullscreen [class*="controls"]{display:none!important}',
+    ':fullscreen [class*="Controls"]{display:none!important}',
+    ':fullscreen [class*="toolbar"]{display:none!important}',
+    ':fullscreen [class*="overlay"]{display:none!important}',
+    ':fullscreen [class*="panel"]{display:none!important}',
+    ':fullscreen [class*="bottom"]{display:none!important}',
+    ':fullscreen #__wpbar{display:flex!important;position:fixed!important;z-index:2147483647!important}',
+    ':fullscreen #__wppanel{display:flex!important;position:fixed!important;z-index:2147483646!important}',
+    ':fullscreen video{display:block!important}',
+    ':-webkit-full-screen [class*="controls"]{display:none!important}',
+    ':-webkit-full-screen [class*="Controls"]{display:none!important}',
+    ':-webkit-full-screen [class*="toolbar"]{display:none!important}',
+    ':-webkit-full-screen [class*="overlay"]{display:none!important}',
+    ':-webkit-full-screen [class*="panel"]{display:none!important}',
+    ':-webkit-full-screen [class*="bottom"]{display:none!important}',
+    ':-webkit-full-screen #__wpbar{display:flex!important;position:fixed!important;z-index:2147483647!important}',
+    ':-webkit-full-screen #__wppanel{display:flex!important;position:fixed!important;z-index:2147483646!important}',
+    ':-webkit-full-screen video{display:block!important}',
+    '@keyframes __wpbl{0%,100%{opacity:1}50%{opacity:.25}}',
+    '#__wpbtn{transition:transform 80ms ease}',
+    '#__wpbtn:active{transform:scale(.82)!important}',
+    '#__wpbar{transition:opacity 0.5s ease,transform 0.5s ease}',
+    '#__wpbar.__wphidden{opacity:0!important;pointer-events:none!important;transform:translateX(-50%) translateY(16px)!important}',
+    '#__wppanel{transition:opacity 0.5s ease,transform 0.5s ease}',
+    '#__wppanel.__wphidden{opacity:0!important;pointer-events:none!important;transform:translateX(-50%) translateY(16px)!important}',
+    '#__wppanel.__wpclosed{display:none!important}',
+    '#__wpreact.__wpclosed{display:none!important}',
+    '#__wpreact{transition:opacity 0.5s ease,transform 0.5s ease}',
+    '#__wpreact.__wphidden{opacity:0!important;pointer-events:none!important;transform:translateX(-50%) translateY(16px)!important}',
+    ':fullscreen #__wpreact{display:flex!important;position:fixed!important;z-index:2147483646!important}',
+    ':-webkit-full-screen #__wpreact{display:flex!important;position:fixed!important;z-index:2147483646!important}',
+    '@keyframes __wpfly{0%{transform:translateY(0) scale(.3);opacity:0}10%{transform:translateY(-20px) scale(1.2);opacity:1}30%{transform:translateY(-100px) scale(1);opacity:1}100%{transform:translateY(-65vh) scale(.7);opacity:0}}',
+    '.__wpfly{position:fixed;pointer-events:none;z-index:2147483646;text-align:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;animation:__wpfly 3s ease-out forwards;will-change:transform,opacity;text-shadow:0 2px 10px rgba(0,0,0,.5)}',
+    '.__wpfly .em{font-size:clamp(32px,9vmin,52px);line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}',
+    '.__wpfly .nm{font-size:clamp(10px,2.5vmin,12px);color:#fff;margin-top:6px;font-weight:600;background:rgba(0,0,0,.55);padding:3px 10px;border-radius:12px;display:inline-block;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:0.5px solid rgba(255,255,255,.15);white-space:nowrap;max-width:60vw;overflow:hidden;text-overflow:ellipsis}'
+  ].join('');
+  document.head.appendChild(styleEl);
+
+  /* ── Strip native controls ── */
+  function stripControls(v){
+    if(!v||v.__wpbound) return;
+    v.__wpbound=true;
+    v.removeAttribute('controls');
+    v.addEventListener('play',function(){ isPlaying=true; updateBtn(); maybeHideBar(); });
+    v.addEventListener('pause',function(){ isPlaying=false; updateBtn(); showBar(); });
+    v.addEventListener('waiting',function(){ if(!remoteSeeking) flash(T('buffering')); });
+    v.addEventListener('playing',function(){ flash(''); });
+    var seekDebounce;
+    v.addEventListener('seeked',function(){
+      if(remoteSeeking) return;
+      clearTimeout(seekDebounce);
+      seekDebounce=setTimeout(function(){
+        var t=v.currentTime, wp=!v.paused;
+        var fireAt=Date.now()+BUFFER_MS;
+        send({cmd:'seekplay',val:t,play:wp,at:fireAt});
+        flash('\\u2192 '+Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'));
+      },300);
+    });
+  }
+  var mobsv=new MutationObserver(function(){ stripControls(vid()); });
+  mobsv.observe(document.body,{childList:true,subtree:true});
+  stripControls(vid());
+
+  /* ── Force highest quality ── */
+  function forceHighQuality(){
+    /* 1. If the page exposes an HLS.js instance, set level to highest */
+    var hls = window.Hls && window.Hls.instances && window.Hls.instances[0];
+    if(!hls){
+      /* Search common variable names the player might use */
+      var names=['hls','hlsPlayer','player','_hls','hlsInstance'];
+      for(var i=0;i<names.length;i++){
+        if(window[names[i]] && window[names[i]].levels) { hls=window[names[i]]; break; }
+      }
+    }
+    if(hls && hls.levels && hls.levels.length>0){
+      /* Sort levels by bandwidth descending, pick highest */
+      var best=0;
+      for(var j=1;j<hls.levels.length;j++){
+        if((hls.levels[j].bitrate||0)>(hls.levels[best].bitrate||0)) best=j;
+      }
+      hls.currentLevel=best;
+      hls.loadLevel=best;
+      hls.nextLevel=best;
+      flash('HD • '+Math.round((hls.levels[best].bitrate||0)/1000)+'kbps');
+      return;
+    }
+
+    /* 2. Fallback: if video has multiple sources, pick the last one (usually highest) */
+    var v=vid();
+    if(v && v.textTracks){
+      /* Some players expose quality via textTracks or videoTracks */
+      var vt=v.videoTracks;
+      if(vt && vt.length>0){
+        for(var k=0;k<vt.length;k++) vt[k].selected=(k===vt.length-1);
+      }
+    }
+  }
+
+  /* Try immediately and again after a short delay (player may init async) */
+  setTimeout(forceHighQuality, 1000);
+  setTimeout(forceHighQuality, 3000);
+  setTimeout(forceHighQuality, 6000);
+
+  /* Also try whenever a new video element appears */
+  var qualObs=new MutationObserver(function(){ setTimeout(forceHighQuality,500); });
+  qualObs.observe(document.body,{childList:true,subtree:true});
+
+  /* Intercept spacebar — route through sync instead of letting browser handle it */
+  document.addEventListener('keydown', function(e){
+    if(e.code!=='Space' && e.key!==' ') return;
+    /* Ignore if user is typing in an input */
+    var tag=(e.target||{}).tagName||'';
+    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+    e.preventDefault();
+    e.stopPropagation();
+    var v=vid();
+    sendCmd(v&&!v.paused?'pause':'play');
+  }, true); /* capture phase — fires before the player sees it */
+
+  /* ── Build bar ── */
+  var bar=document.createElement('div');
+  bar.id='__wpbar';
+  bar.style.cssText=[
+    'position:fixed','bottom:24px','left:50%','transform:translateX(-50%)',
+    'background:rgba(10,10,20,.52)',
+    '-webkit-backdrop-filter:saturate(180%) blur(28px)',
+    'backdrop-filter:saturate(180%) blur(28px)',
+    'border:0.5px solid rgba(255,255,255,.18)',
+    'border-radius:999px','padding:6px 10px',
+    'z-index:2147483647','display:flex','align-items:center','gap:6px',
+    'font-family:-apple-system,BlinkMacSystemFont,sans-serif',
+    'box-shadow:0 2px 24px rgba(0,0,0,.45),inset 0 0.5px 0 rgba(255,255,255,.1)'
+  ].join(';');
+
+  var dot=document.createElement('div');
+  dot.style.cssText='width:6px;height:6px;border-radius:50%;flex-shrink:0;background:#fbbf24;animation:__wpbl .9s infinite;transition:background .4s';
+
+  var badge=document.createElement('span');
+  badge.style.cssText='font-size:11px;font-weight:600;color:rgba(255,255,255,.5);white-space:nowrap;letter-spacing:.03em;min-width:70px';
+  badge.textContent=ROOM;
+
+  function sep(){
+    var d=document.createElement('div');
+    d.style.cssText='width:0.5px;height:16px;background:rgba(255,255,255,.14);flex-shrink:0;margin:0 2px';
+    return d;
+  }
+
+  function mkPill(txt,fn){
+    var b=document.createElement('button');
+    b.textContent=txt;
+    b.style.cssText='background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:500;color:rgba(255,255,255,.7);transition:background .12s;white-space:nowrap';
+    b.onmouseover=function(){ b.style.background='rgba(255,255,255,.18)'; };
+    b.onmouseout=function(){ b.style.background='rgba(255,255,255,.08)'; };
+    b.onclick=fn; return b;
+  }
+
+  /* Play/pause toggle */
+  var playBtn=document.createElement('button');
+  playBtn.id='__wpbtn';
+  playBtn.style.cssText='background:rgba(255,255,255,.92);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;color:#111;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 2px;box-shadow:0 1px 6px rgba(0,0,0,.3)';
+  playBtn.innerHTML='\\u25b6';
+  playBtn.title='Play / Pause';
+  playBtn.onclick=function(){ sendCmd(vid()&&!vid().paused?'pause':'play'); };
+
+  function updateBtn(){
+    var v=vid();
+    playBtn.innerHTML=(v&&!v.paused)?'\\u23f8':'\\u25b6';
+  }
+  setInterval(updateBtn,500);
+
+  /* People button */
+  var peopleBtn=document.createElement('button');
+  peopleBtn.style.cssText='background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:4px 9px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;white-space:nowrap;transition:background .12s;font-weight:500';
+  peopleBtn.onmouseover=function(){ peopleBtn.style.background='rgba(255,255,255,.18)'; };
+  peopleBtn.onmouseout=function(){ if(!panelVisible) peopleBtn.style.background='rgba(255,255,255,.08)'; };
+  countEl=document.createElement('span');
+  countEl.textContent='1';
+  peopleBtn.appendChild(document.createTextNode('\\uD83D\\uDC65\\u202F'));
+  peopleBtn.appendChild(countEl);
+
+  /* Members panel */
+  panel=document.createElement('div');
+  panel.id='__wppanel';
+  panel.style.cssText=[
+    'position:fixed','bottom:90px','left:50%','transform:translateX(-50%)',
+    'background:rgba(10,10,20,.52)',
+    '-webkit-backdrop-filter:saturate(180%) blur(28px)',
+    'backdrop-filter:saturate(180%) blur(28px)',
+    'border:0.5px solid rgba(255,255,255,.18)',
+    'border-radius:22px','padding:6px 14px',
+    'z-index:2147483646','min-width:0',
+    'max-width:calc(100vw - 16px)',
+    'display:flex','flex-direction:row','align-items:center','gap:8px','flex-wrap:wrap','row-gap:4px',
+    'box-shadow:0 2px 24px rgba(0,0,0,.45),inset 0 0.5px 0 rgba(255,255,255,.1)',
+    'font-family:-apple-system,BlinkMacSystemFont,sans-serif',
+    'transition:opacity 0.3s ease'
+  ].join(';');
+
+  var panelTitle=document.createElement('span');
+  panelTitle.style.cssText='font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.3);font-weight:600;white-space:nowrap;flex-shrink:0';
+  panelTitle.textContent='room';
+  panel.appendChild(panelTitle);
+
+  var panelDivider=document.createElement('div');
+  panelDivider.style.cssText='width:0.5px;height:16px;background:rgba(255,255,255,.14);flex-shrink:0';
+  panel.appendChild(panelDivider);
+
+  membersEl=document.createElement('div');
+  membersEl.style.cssText='display:flex;flex-direction:row;align-items:center;gap:5px;flex-wrap:wrap';
+  panel.appendChild(membersEl);
+
+  /* Close button on the panel itself */
+  var panelClose=document.createElement('button');
+  panelClose.textContent='\u00d7';
+  panelClose.style.cssText='background:rgba(255,255,255,.08);border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;color:rgba(255,255,255,.5);font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s;line-height:1;margin-left:2px';
+  panelClose.onmouseover=function(){ panelClose.style.background='rgba(255,255,255,.18)'; };
+  panelClose.onmouseout=function(){ panelClose.style.background='rgba(255,255,255,.08)'; };
+  panelClose.onclick=function(e){
+    e.stopPropagation();
+    panelVisible=false;
+    panel.classList.add('__wpclosed');
+    peopleBtn.style.background='rgba(255,255,255,.08)';
+  };
+  panel.appendChild(panelClose);
+
+  panel.classList.add('__wpclosed');
+  document.body.appendChild(panel);
+
+  peopleBtn.onclick=function(e){
+    e.stopPropagation();
+    panelVisible=!panelVisible;
+    panel.classList.toggle('__wpclosed', !panelVisible);
+    peopleBtn.style.background=panelVisible?'rgba(255,255,255,.2)':'rgba(255,255,255,.08)';
+  };
+
+  /* ── Live Reactions ─────────────────────────────────────────────── */
+  var EMOJIS = ['\uD83D\uDD25','\u2764\uFE0F','\uD83D\uDE02','\uD83D\uDC4F','\uD83C\uDF89','\uD83D\uDE31','\uD83D\uDC4D','\uD83D\uDE2D'];
+  var reactionsVisible = false;
+
+  /* No toggle button — palette is always visible */
+
+  /* Reactions panel — emoji palette */
+  var reactionsPanel = document.createElement('div');
+  reactionsPanel.id='__wpreact';
+  reactionsPanel.style.cssText=[
+    'position:fixed',
+    'background:rgba(10,10,20,.52)',
+    '-webkit-backdrop-filter:saturate(180%) blur(28px)',
+    'backdrop-filter:saturate(180%) blur(28px)',
+    'border:0.5px solid rgba(255,255,255,.18)',
+    'border-radius:999px','padding:4px 6px',
+    'z-index:2147483647',
+    'display:flex','flex-direction:row','align-items:center','gap:2px',
+    'max-width:calc(100vw - 16px)',
+    'box-shadow:0 2px 24px rgba(0,0,0,.45),inset 0 0.5px 0 rgba(255,255,255,.1)',
+    'font-family:-apple-system,BlinkMacSystemFont,sans-serif',
+    'transition:opacity .5s ease,transform .5s ease,left .3s ease,bottom .3s ease,top .3s ease,right .3s ease'
+  ].join(';');
+
+  EMOJIS.forEach(function(em){
+    var b = document.createElement('button');
+    b.textContent = em;
+    b.style.cssText='background:transparent;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s,transform .1s;padding:0;line-height:1';
+    b.onmouseover=function(){ b.style.background='rgba(255,255,255,.15)'; };
+    b.onmouseout=function(){ b.style.background='transparent'; };
+    b.onclick=function(e){
+      e.stopPropagation();
+      b.style.transform='scale(.85)';
+      setTimeout(function(){ b.style.transform='scale(1)'; }, 100);
+      sendReaction(em);
+    };
+    reactionsPanel.appendChild(b);
+  });
+
+  document.body.appendChild(reactionsPanel);
+
+  /* Palette always visible — no toggle needed */
+
+  /* Send a reaction to all peers + show locally */
+  function sendReaction(emoji){
+    send({cmd:'reaction', emoji:emoji, name:NAME});
+    showReaction(emoji, NAME+T('you'));
+  }
+
+  /* Display a flying emoji */
+  function showReaction(emoji, fromName){
+    var fly = document.createElement('div');
+    fly.className = '__wpfly';
+    /* Random horizontal position — confine to middle 60% so the name stays readable */
+    var x = 20 + Math.random() * 60; /* percent */
+    fly.style.left = x + '%';
+    fly.style.bottom = (90 + Math.random()*30) + 'px';
+    fly.style.transform = 'translateX(-50%)';
+
+    var em = document.createElement('div');
+    em.className = 'em';
+    em.textContent = emoji;
+    var nm = document.createElement('div');
+    nm.className = 'nm';
+    nm.textContent = fromName;
+
+    fly.appendChild(em);
+    fly.appendChild(nm);
+
+    /* Append into fullscreen container if any */
+    var fs = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
+    var target = (fs && fs.tagName!=='VIDEO') ? fs : document.body;
+    target.appendChild(fly);
+
+    setTimeout(function(){ try{ fly.parentNode && fly.parentNode.removeChild(fly); }catch(e){} }, 3100);
+  }
+
+  /* Click anywhere outside open panels to close them */
+  document.addEventListener('click', function(e){
+    if(panelVisible && !panel.contains(e.target) && e.target!==peopleBtn && !e.target.closest('#__wppanel')){
+      panelVisible=false;
+      panel.classList.add('__wpclosed');
+      peopleBtn.style.background='rgba(255,255,255,.08)';
+    }
+  }, true);
+
+  /* Fullscreen button */
+  var fsBtn=document.createElement('button');
+  fsBtn.style.cssText='background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:5px 9px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.7);transition:background .12s;display:flex;align-items:center;justify-content:center;line-height:1';
+  fsBtn.title='Toggle fullscreen';
+  fsBtn.innerHTML='\\u26f6';
+  fsBtn.onmouseover=function(){ fsBtn.style.background='rgba(255,255,255,.18)'; };
+  fsBtn.onmouseout=function(){ fsBtn.style.background='rgba(255,255,255,.08)'; };
+
+  function isFullscreen(){
+    return !!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement);
+  }
+  var hideTimer;
+  function showBar(){
+    bar.classList.remove('__wphidden');
+    if(panel && panelVisible) panel.classList.remove('__wphidden');
+    if(reactionsPanel && reactionsVisible) reactionsPanel.classList.remove('__wphidden');
+    clearTimeout(hideTimer);
+  }
+  function maybeHideBar(){
+    if(!isFullscreen()) return;
+    var v=vid();
+    if(v&&!v.paused){
+      hideTimer=setTimeout(function(){
+        bar.classList.add('__wphidden');
+        if(panel) panel.classList.add('__wphidden');
+        if(reactionsPanel) reactionsPanel.classList.add('__wphidden');
+      },2500);
+    }
+  }
+  document.addEventListener('mousemove',function(){ if(!isFullscreen()) return; showBar(); maybeHideBar(); });
+  document.addEventListener('fullscreenchange',function(){ showBar(); placeBar(); updateFsBtn(); maybeHideBar(); });
+  document.addEventListener('webkitfullscreenchange',function(){ showBar(); placeBar(); updateFsBtn(); maybeHideBar(); });
+
+  function updateFsBtn(){ fsBtn.innerHTML=isFullscreen()?'\\u29c8':'\\u26f6'; }
+
+  fsBtn.onclick=function(){
+    if(isFullscreen()){
+      (document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen).call(document);
+      return;
+    }
+    var v=vid();
+    var wrapper=document.getElementById('__wpwrap');
+    if(!wrapper&&v&&v.parentElement){
+      wrapper=document.createElement('div');
+      wrapper.id='__wpwrap';
+      wrapper.style.cssText='position:relative;width:100%;height:100%;background:#000';
+      v.parentElement.insertBefore(wrapper,v);
+      wrapper.appendChild(v);
+    }
+    var el=wrapper||v||document.documentElement;
+    var req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen;
+    if(req) req.call(el);
+  };
+
+  function placeBar(){
+    var fs=document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement;
+    if(!fs){
+      if(bar.parentNode!==document.body) document.body.appendChild(bar);
+      if(panel && panel.parentNode!==document.body) document.body.appendChild(panel);
+      if(reactionsPanel && reactionsPanel.parentNode!==document.body) document.body.appendChild(reactionsPanel);
+      return;
+    }
+    var target=fs.tagName==='VIDEO'?(fs.parentElement||document.body):fs;
+    if(bar.parentNode!==target) target.appendChild(bar);
+    if(panel&&panel.parentNode!==target) target.appendChild(panel);
+    if(reactionsPanel&&reactionsPanel.parentNode!==target) target.appendChild(reactionsPanel);
+    bar.style.position='fixed';
+    bar.style.zIndex='2147483647';
+    if(typeof refreshLayout==='function') setTimeout(refreshLayout, 50);
+  }
+
+  /* Assemble bar */
+  /* Capture pill refs for responsive show/hide */
+  var pillStart   = mkPill('\\u23ee', function(){
+    var v=vid(),wp=v&&!v.paused,fa=Date.now()+BUFFER_MS;
+    send({cmd:'seekplay',val:0,play:wp,at:fa});
+    scheduleAt(fa,function(){ doJump(0,wp); });
+    flash(T('start_lbl'));
+  });
+  var pill30Minus = mkPill('\\u221230s', function(){ sendSeek(-30); });
+  var pill10Minus = mkPill('\\u221210s', function(){ sendSeek(-10); });
+  var pill10Plus  = mkPill('+10s',      function(){ sendSeek(10); });
+  var pill30Plus  = mkPill('+30s',      function(){ sendSeek(30); });
+  var sepBeforeFs = sep();
+
+  bar.appendChild(dot);
+  bar.appendChild(badge);
+  bar.appendChild(sep());
+  bar.appendChild(peopleBtn);
+  bar.appendChild(sep());
+  bar.appendChild(pillStart);
+  bar.appendChild(pill30Minus);
+  bar.appendChild(pill10Minus);
+  bar.appendChild(playBtn);
+  bar.appendChild(pill10Plus);
+  bar.appendChild(pill30Plus);
+  bar.appendChild(sepBeforeFs);
+  bar.appendChild(fsBtn);
+
+  document.body.appendChild(bar);
+  placeBar();
+
+  /* Position the emoji palette: to the right of the bar if width allows,
+     otherwise centered below the bar. Re-runs on resize/fullscreen. */
+  function positionReactions(){
+    if(!reactionsPanel) return;
+    var barRect = bar.getBoundingClientRect();
+    var panelW = reactionsPanel.offsetWidth || 320;
+    var gap = 8;
+    var bodyW = window.innerWidth;
+    var bodyH = window.innerHeight;
+
+    var fitsRight = (barRect.right + gap + panelW) <= (bodyW - 8);
+
+    if(fitsRight){
+      /* Place to the RIGHT of the bar, vertically centered with it */
+      reactionsPanel.style.left = (barRect.right + gap) + 'px';
+      reactionsPanel.style.right = 'auto';
+      reactionsPanel.style.transform = 'translate(0,-50%)';
+      reactionsPanel.style.top = (barRect.top + barRect.height/2) + 'px';
+      reactionsPanel.style.bottom = 'auto';
+    } else {
+      /* Place BELOW the bar, horizontally centered relative to viewport */
+      reactionsPanel.style.left = '50%';
+      reactionsPanel.style.right = 'auto';
+      reactionsPanel.style.transform = 'translateX(-50%)';
+      reactionsPanel.style.top = (barRect.bottom + gap) + 'px';
+      reactionsPanel.style.bottom = 'auto';
+      /* If that pushes off-screen at the bottom, switch to ABOVE the bar */
+      var palH = reactionsPanel.offsetHeight || 42;
+      if(barRect.bottom + gap + palH > bodyH - 8){
+        reactionsPanel.style.top = 'auto';
+        reactionsPanel.style.bottom = (bodyH - barRect.top + gap) + 'px';
+      }
+    }
+  }
+
+  /* ── Responsive sizing — hides less-essential buttons on narrow screens ── */
+  function applyResponsive(){
+    var w = window.innerWidth;
+    var compact = w < 480;
+    var ultra   = w < 360;
+
+    if(pill30Minus) pill30Minus.style.display = compact ? 'none' : '';
+    if(pill30Plus)  pill30Plus.style.display  = compact ? 'none' : '';
+    if(pill10Minus) pill10Minus.style.display = ultra ? 'none' : '';
+    if(pill10Plus)  pill10Plus.style.display  = ultra ? 'none' : '';
+    if(sepBeforeFs) sepBeforeFs.style.display = ultra ? 'none' : '';
+
+    if(compact){
+      bar.style.padding = '5px 8px';
+      bar.style.gap = '4px';
+    } else {
+      bar.style.padding = '6px 10px';
+      bar.style.gap = '6px';
+    }
+
+    if(playBtn){
+      var size = compact ? 32 : 36;
+      playBtn.style.width  = size + 'px';
+      playBtn.style.height = size + 'px';
+      playBtn.style.fontSize = (compact ? 13 : 14) + 'px';
+    }
+
+    if(reactionsPanel){
+      var emSize = ultra ? 28 : (compact ? 30 : 32);
+      var emFont = ultra ? 16 : (compact ? 17 : 18);
+      reactionsPanel.querySelectorAll('button').forEach(function(b){
+        b.style.width = emSize + 'px';
+        b.style.height = emSize + 'px';
+        b.style.fontSize = emFont + 'px';
+      });
+    }
+  }
+
+  function refreshLayout(){
+    applyResponsive();
+    setTimeout(positionReactions, 30);
+  }
+
+  window.addEventListener('resize', refreshLayout);
+  window.addEventListener('orientationchange', function(){ setTimeout(refreshLayout, 200); });
+  document.addEventListener('fullscreenchange', function(){ setTimeout(refreshLayout, 80); });
+  document.addEventListener('webkitfullscreenchange', function(){ setTimeout(refreshLayout, 80); });
+
+  setTimeout(refreshLayout, 100);
+
+  function setDot(col,anim){
+    dot.style.background=col;
+    dot.style.animation=anim?'__wpbl .9s infinite':'none';
+  }
+  var flashT;
+  function flash(msg){
+    badge.textContent=msg||ROOM;
+    if(!msg) return;
+    clearTimeout(flashT);
+    flashT=setTimeout(function(){ badge.textContent=ROOM; },2000);
+  }
+
+  /* Boot */
+  tryAsA();
+  flash(T('starting'));
+}
+})();`;
+
+function buildBookmarklet(){
+  var src = BOOKMARKLET.replace('__LANG__', currentLang);
+  /* Pass localized 'already active' alert prefix via window var so outer guard can use it */
+  var alreadyAlert = (currentLang === 'ru' ? 'WatchWithMe уже работает! Комната: ' : 'WatchWithMe active! Room: ');
+  src = src.replace(
+    "if(window.__wp && !window.__wpKicked){",
+    "window.__wpLangAlready=" + JSON.stringify(alreadyAlert) + ";if(window.__wp && !window.__wpKicked){"
+  );
+  document.getElementById('bmk').href = 'javascript:' + encodeURIComponent(src);
+}
+
+/* Apply initial language and build bookmarklet */
+setLang(currentLang);
 </script>
 </body>
 </html>
