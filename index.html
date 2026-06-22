@@ -44,6 +44,8 @@ input::placeholder{color:#4a4a6a}
 #playerScreen{background:#000}
 .pwrap{flex:1;position:relative;overflow:hidden}
 .pwrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.info-overlay{position:absolute;top:max(60px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:rgba(124,92,252,.85);color:#fff;padding:8px 14px;border-radius:20px;font-size:11px;font-weight:500;z-index:15;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);text-align:center;max-width:90vw;pointer-events:none;opacity:0;transition:opacity .3s}
+.info-overlay.show{opacity:1}
 
 /* Frosted glass bar */
 .fbar{
@@ -57,6 +59,7 @@ input::placeholder{color:#4a4a6a}
   border-top:0.5px solid rgba(255,255,255,.13);
   box-shadow:inset 0 0.5px 0 rgba(255,255,255,.09);
   transition:opacity .5s ease,transform .5s ease;
+  flex-wrap:wrap;
 }
 .fbar.fhidden{opacity:0;pointer-events:none;transform:translateY(12px)}
 .fbadge{font-size:10px;font-weight:600;color:rgba(255,255,255,.45);letter-spacing:.03em;white-space:nowrap;min-width:60px}
@@ -71,7 +74,7 @@ input::placeholder{color:#4a4a6a}
 .ffs{background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:5px 9px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.7);display:flex;align-items:center;-webkit-appearance:none;transition:background .12s;line-height:1}
 .ffs:active{background:rgba(255,255,255,.2)}
 
-/* Members panel — pill style above bar */
+/* Members panel */
 .mpanel{
   position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
   background:rgba(10,10,20,.55);
@@ -96,6 +99,8 @@ input::placeholder{color:#4a4a6a}
 .mpclose:active{background:rgba(255,255,255,.2)}
 
 .back{position:absolute;top:max(10px,env(safe-area-inset-top));left:10px;z-index:20;background:rgba(10,10,20,.65);border:0.5px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:12px;color:rgba(255,255,255,.65);cursor:pointer;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);-webkit-appearance:none}
+
+.warn-banner{position:absolute;top:max(50px,calc(env(safe-area-inset-top) + 50px));left:50%;transform:translateX(-50%);background:rgba(255,180,40,.95);color:#1a1300;padding:8px 14px;border-radius:20px;font-size:11px;font-weight:600;z-index:14;max-width:92vw;text-align:center;line-height:1.4;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 2px 12px rgba(0,0,0,.3)}
 </style>
 </head>
 <body>
@@ -135,6 +140,10 @@ input::placeholder{color:#4a4a6a}
 <!-- Player -->
 <div class="screen hidden" id="playerScreen">
   <button class="back" onclick="goSetup()">← Room</button>
+  <div class="warn-banner" id="warnBanner" style="display:none">
+    ⚠ Use the play/pause buttons on the bar below — the movie's own buttons don't sync
+  </div>
+  <div class="info-overlay" id="infoOverlay"></div>
   <div class="pwrap" id="pwrap"></div>
   <div class="fbar" id="fbar">
     <div class="mpanel" id="mpanel">
@@ -160,6 +169,32 @@ input::placeholder{color:#4a4a6a}
 </div>
 
 <script>
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  THE CHALLENGE                                                       ║
+// ║  When the movie loads in our iframe from api.ortified.ws (a          ║
+// ║  different origin), the browser blocks all DOM access to its <video> ║
+// ║  element. So we can't directly call video.play() / pause() / seek.   ║
+// ║                                                                       ║
+// ║  THE SOLUTION                                                        ║
+// ║  We treat OUR local iframe as "best effort" and use TWO mechanisms:  ║
+// ║                                                                       ║
+// ║  1. Local "shadow video" — invisible <video> element on our page     ║
+// ║     that mirrors playback state. The bar's play/pause buttons drive  ║
+// ║     this shadow, and sync commands fire on this shadow.              ║
+// ║                                                                       ║
+// ║  2. postMessage to iframe — tries to send play/pause/seek to the     ║
+// ║     ortified iframe via window.postMessage. If the player listens    ║
+// ║     to messages, it'll respond; if not, the shadow video still       ║
+// ║     drives the bar UI and the sync engine, and the user can manually ║
+// ║     mirror with the player's own controls — but EVERY device gets    ║
+// ║     the same sync command at the same timestamp.                     ║
+// ║                                                                       ║
+// ║  For the desktop bookmarklet version (yo.html), sync commands ARE    ║
+// ║  fully effective since the bookmarklet has direct DOM access.        ║
+// ║  Telegram users can join those rooms and their commands will         ║
+// ║  control the desktop bookmarklet user's video.                       ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
 /* ── Telegram ── */
 const tg=window.Telegram&&window.Telegram.WebApp;
 if(tg){tg.ready();tg.expand();tg.setHeaderColor&&tg.setHeaderColor('#0a0a0f');tg.setBackgroundColor&&tg.setBackgroundColor('#0a0a0f');}
@@ -169,8 +204,33 @@ let roomId=Math.random().toString(36).slice(2,8).toUpperCase();
 let myName='',myPeerId='',isHost=false,peer=null;
 let conns={},members={},blacklist={};
 let BUFFER_MS=80,clockOffset=0,rttSamples=[],pingCount=0,pendingTimer=null;
-let remoteSeeking=false,panelOpen=false;
+let panelOpen=false;
 let iframeEl=null;
+let movieUrlVal='';
+
+/* Shadow playback state — what the bar reflects.
+   This is the source of truth on the Telegram side since we can't
+   read the iframe's <video> directly. */
+let shadowPlaying=false;
+let shadowPosition=0;
+let shadowStartedAt=0;
+function shadowCurrentTime(){
+  return shadowPlaying ? shadowPosition + (Date.now()-shadowStartedAt)/1000 : shadowPosition;
+}
+function shadowPlay(){
+  if(shadowPlaying)return;
+  shadowStartedAt=Date.now();
+  shadowPlaying=true;
+}
+function shadowPause(){
+  if(!shadowPlaying)return;
+  shadowPosition=shadowCurrentTime();
+  shadowPlaying=false;
+}
+function shadowSeek(t){
+  shadowPosition=Math.max(0,t);
+  if(shadowPlaying)shadowStartedAt=Date.now();
+}
 
 /* ── Screens ── */
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');}
@@ -179,9 +239,14 @@ function goWatch(){
   myName=document.getElementById('nameIn').value.trim()||'Guest';
   const url=document.getElementById('movieUrl').value.trim();
   if(!url){document.getElementById('movieUrl').focus();return;}
+  movieUrlVal=url;
   if(isHost)sendAll({cmd:'movieurl',val:url});
   showScreen('playerScreen');
   loadIframe(url);
+  /* Show warning banner for 6 seconds */
+  const warn=document.getElementById('warnBanner');
+  warn.style.display='block';
+  setTimeout(()=>warn.style.display='none',6000);
 }
 
 /* ── Room code ── */
@@ -197,7 +262,7 @@ function updateSyncTxt(){
   document.getElementById('syncTxt').textContent=cnt>1?'Room '+roomId+' · '+cnt+' watching':'Room '+roomId+' · share this code';
 }
 
-/* ── Sync UI ── */
+/* ── Status UI ── */
 function setSS(s,t){
   document.getElementById('syncDot').className='sdot '+(s==='ok'?'sdok':s==='sp'?'sdsp':'sder');
   document.getElementById('syncTxt').textContent=t;
@@ -215,13 +280,19 @@ function flash(msg){
   clearTimeout(flashT);
   flashT=setTimeout(()=>{b.textContent=roomId;},2000);
 }
+let infoT;
+function info(msg,duration){
+  const el=document.getElementById('infoOverlay');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(infoT);
+  infoT=setTimeout(()=>el.classList.remove('show'),duration||2500);
+}
 
 /* ── Members ── */
 function renderMembers(){
   const list=Object.values(members);
   document.getElementById('fcount').textContent=list.length;
-
-  /* Setup screen list */
   const mrow=document.getElementById('mrow');
   if(!list.length){mrow.innerHTML='<span style="font-size:.75rem;color:#4a4a6a">No one yet</span>';}
   else{
@@ -238,8 +309,6 @@ function renderMembers(){
       mrow.appendChild(ch);
     });
   }
-
-  /* Player panel chips */
   const mpchips=document.getElementById('mpchips');
   mpchips.innerHTML='';
   list.forEach((m,i)=>{
@@ -256,7 +325,6 @@ function renderMembers(){
   });
   updateSyncTxt();
 }
-
 function togglePanel(e){
   if(e)e.stopPropagation();
   panelOpen=!panelOpen;
@@ -271,78 +339,83 @@ document.addEventListener('click',e=>{
   }
 });
 
-/* ── Iframe + Video ── */
+/* ── Iframe ── */
 function loadIframe(url){
   const wrap=document.getElementById('pwrap');
   wrap.innerHTML='';
   iframeEl=document.createElement('iframe');
   iframeEl.src=url;
   iframeEl.allow='autoplay; fullscreen';
+  iframeEl.allowFullscreen=true;
   iframeEl.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:none';
   wrap.appendChild(iframeEl);
-  setTimeout(forceHQ,1500);setTimeout(forceHQ,4000);setTimeout(forceHQ,8000);
-  setTimeout(bindVideo,2000);setTimeout(bindVideo,5000);
 }
 
-function vid(){
-  try{return iframeEl&&iframeEl.contentDocument&&iframeEl.contentDocument.querySelector('video');}catch(e){return null;}
-}
-
-let videoBound=false;
-function bindVideo(){
-  const v=vid(); if(!v||videoBound) return;
-  videoBound=true;
-  v.removeAttribute('controls');
-  v.addEventListener('play',()=>{updatePlayBtn();maybeHide();});
-  v.addEventListener('pause',()=>{updatePlayBtn();showBar();});
-  v.addEventListener('waiting',()=>{if(!remoteSeeking)flash('⏳ buffering…');});
-  v.addEventListener('playing',()=>{flash('');});
-  /* Sync timeline scrub */
-  let seekDeb;
-  v.addEventListener('seeked',()=>{
-    if(remoteSeeking)return;
-    clearTimeout(seekDeb);
-    seekDeb=setTimeout(()=>{
-      const t=v.currentTime,wp=!v.paused,fa=Date.now()+BUFFER_MS;
-      sendAll({cmd:'seekplay',val:t,play:wp,at:fa});
-      flash('→ '+Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'));
-    },300);
-  });
-  /* Hide native player buttons */
+/* Try to control video via postMessage to iframe.
+   The player may or may not listen for these — but we send them anyway. */
+function postToIframe(action,value){
+  if(!iframeEl||!iframeEl.contentWindow)return;
   try{
-    const doc=iframeEl.contentDocument;
-    const st=doc.createElement('style');
-    st.textContent='.button_1_n.iconMD_2O8{display:none!important}.button_1_n.icon_3ze{display:none!important}';
-    doc.head.appendChild(st);
+    iframeEl.contentWindow.postMessage({type:'watchparty',action,value},'*');
+    iframeEl.contentWindow.postMessage({method:action,value:value},'*');
+    iframeEl.contentWindow.postMessage(JSON.stringify({event:'command',func:action,value:value}),'*');
   }catch(e){}
 }
 
+/* ── Play button state ── */
 function updatePlayBtn(){
-  const v=vid();
-  document.getElementById('playBtn').textContent=(v&&!v.paused)?'⏸':'▶';
+  document.getElementById('playBtn').textContent=shadowPlaying?'⏸':'▶';
 }
 setInterval(updatePlayBtn,500);
 
-function forceHQ(){
-  try{
-    const hls=window.Hls&&window.Hls.instances&&window.Hls.instances[0];
-    if(!hls||!hls.levels||!hls.levels.length)return;
-    let best=0;
-    for(let j=1;j<hls.levels.length;j++)if((hls.levels[j].bitrate||0)>(hls.levels[best].bitrate||0))best=j;
-    hls.currentLevel=best;hls.loadLevel=best;hls.nextLevel=best;
-    flash('HD·'+Math.round((hls.levels[best].bitrate||0)/1000)+'k');
-  }catch(e){}
+/* ── Scheduled execution ── */
+function scheduleAt(ts,fn){clearTimeout(pendingTimer);const d=ts-Date.now();if(d<=0){fn();return;}pendingTimer=setTimeout(fn,d);}
+
+/* ── Local video actions (shadow + best-effort iframe postMessage) ── */
+function doPlay(){
+  shadowPlay();
+  postToIframe('play');
+  updatePlayBtn();
+}
+function doPause(){
+  shadowPause();
+  postToIframe('pause');
+  updatePlayBtn();
+}
+function doSeek(t){
+  shadowSeek(t);
+  postToIframe('seek',t);
+  updatePlayBtn();
 }
 
-/* ── Bar auto-hide ── */
-let hideTimer;
-function showBar(){document.getElementById('fbar').classList.remove('fhidden');clearTimeout(hideTimer);}
-function maybeHide(){
-  const v=vid();
-  if(v&&!v.paused)hideTimer=setTimeout(()=>document.getElementById('fbar').classList.add('fhidden'),2500);
+/* ── Sync transmission ── */
+function sendAll(msg,excl){Object.keys(conns).forEach(pid=>{if(pid!==excl&&conns[pid]&&conns[pid].open)conns[pid].send(msg);});}
+function sendTo(pid,msg){if(conns[pid]&&conns[pid].open)conns[pid].send(msg);}
+
+function toggle(){sendCmd(shadowPlaying?'pause':'play');}
+function sendCmd(cmd){
+  const fa=Date.now()+BUFFER_MS;
+  const t=shadowCurrentTime();
+  sendAll({cmd,t,at:fa});
+  scheduleAt(fa,()=>{
+    if(cmd==='play')doPlay();
+    else{doPause();doSeek(t);}
+  });
+  flash(cmd==='play'?'▶':'⏸');
 }
-document.getElementById('pwrap').addEventListener('touchstart',()=>{showBar();maybeHide();});
-document.getElementById('pwrap').addEventListener('mousemove',()=>{showBar();maybeHide();});
+function seek(delta){
+  const target=Math.max(0,shadowCurrentTime()+delta);
+  const fa=Date.now()+BUFFER_MS;
+  sendAll({cmd:'seekplay',val:target,play:shadowPlaying,at:fa});
+  scheduleAt(fa,()=>{doSeek(target);if(shadowPlaying)doPlay();});
+  flash((delta>0?'+':'')+delta+'s');
+}
+function seekStart(){
+  const fa=Date.now()+BUFFER_MS;
+  sendAll({cmd:'seekplay',val:0,play:shadowPlaying,at:fa});
+  scheduleAt(fa,()=>{doSeek(0);if(shadowPlaying)doPlay();});
+  flash('⏮ start');
+}
 
 /* ── Fullscreen ── */
 function toggleFS(){
@@ -361,46 +434,6 @@ function updateFsBtn(){
 document.addEventListener('fullscreenchange',updateFsBtn);
 document.addEventListener('webkitfullscreenchange',updateFsBtn);
 
-/* ── Scheduled execution ── */
-function scheduleAt(ts,fn){clearTimeout(pendingTimer);const d=ts-Date.now();if(d<=0){fn();return;}pendingTimer=setTimeout(fn,d);}
-
-/* ── Video actions ── */
-function doPlay(){const v=vid();if(v)v.play().catch(()=>{});updatePlayBtn();}
-function doPause(){const v=vid();if(v)v.pause();updatePlayBtn();}
-function doJump(s,thenPlay){
-  const v=vid();if(!v)return;
-  remoteSeeking=true;v.pause();v.currentTime=s;
-  flash('⏳ buffering…');setFD('#f59e0b',true);
-  const onR=()=>{v.removeEventListener('canplay',onR);clearTimeout(bt);remoteSeeking=false;setFD('#34d399',false);if(thenPlay)v.play().catch(()=>{});updatePlayBtn();};
-  v.addEventListener('canplay',onR);
-  const bt=setTimeout(()=>{v.removeEventListener('canplay',onR);remoteSeeking=false;setFD('#34d399',false);if(thenPlay)v.play().catch(()=>{});updatePlayBtn();},6000);
-}
-
-/* ── Sync commands ── */
-function sendAll(msg,excl){Object.keys(conns).forEach(pid=>{if(pid!==excl&&conns[pid]&&conns[pid].open)conns[pid].send(msg);});}
-function sendTo(pid,msg){if(conns[pid]&&conns[pid].open)conns[pid].send(msg);}
-
-function toggle(){const v=vid();sendCmd(v&&!v.paused?'pause':'play');}
-function sendCmd(cmd){
-  const fa=Date.now()+BUFFER_MS,t=vid()?vid().currentTime:0;
-  sendAll({cmd,t,at:fa});
-  scheduleAt(fa,()=>{if(cmd==='play'){doPlay();}else{doPause();const v=vid();if(v&&t!=null)v.currentTime=t;}});
-  flash(cmd==='play'?'▶':'⏸');
-}
-function seek(delta){
-  const v=vid();if(!v)return;
-  const target=Math.max(0,v.currentTime+delta),wp=!v.paused,fa=Date.now()+BUFFER_MS;
-  sendAll({cmd:'seekplay',val:target,play:wp,at:fa});
-  scheduleAt(fa,()=>doJump(target,wp));
-  flash((delta>0?'+':'')+delta+'s');
-}
-function seekStart(){
-  const v=vid(),wp=v&&!v.paused,fa=Date.now()+BUFFER_MS;
-  sendAll({cmd:'seekplay',val:0,play:wp,at:fa});
-  scheduleAt(fa,()=>doJump(0,wp));
-  flash('⏮ start');
-}
-
 /* ── PeerJS ── */
 function removeMember(peerId){
   blacklist[peerId]=true;
@@ -410,7 +443,6 @@ function removeMember(peerId){
   Object.keys(conns).forEach(pid=>{if(pid!==peerId&&conns[pid]&&conns[pid].open)conns[pid].send({cmd:'memberleft',val:peerId});});
   setTimeout(()=>{if(conns[peerId]){try{conns[peerId].close();}catch(e){}delete conns[peerId];}delete members[peerId];renderMembers();},300);
 }
-
 function wireConn(c){
   if(isHost&&blacklist[c.peer]){try{c.send({cmd:'kicked',val:c.peer});}catch(e){}setTimeout(()=>{try{c.close();}catch(e){}},200);return;}
   conns[c.peer]=c;
@@ -418,7 +450,12 @@ function wireConn(c){
     if(isHost&&blacklist[c.peer]){try{c.send({cmd:'kicked',val:c.peer});}catch(e){}setTimeout(()=>{try{c.close();}catch(e){}delete conns[c.peer];},200);return;}
     setFD('#fbbf24',true);flash('measuring…');doPing();
     c.send({cmd:'hello',name:myName,peerId:myPeerId});
-    if(isHost)c.send({cmd:'memberlist',members:Object.values(members)});
+    if(isHost){
+      c.send({cmd:'memberlist',members:Object.values(members)});
+      if(movieUrlVal)c.send({cmd:'movieurl',val:movieUrlVal});
+      /* Send current sync state so newcomer joins at same position */
+      c.send({cmd:'syncstate',playing:shadowPlaying,t:shadowCurrentTime(),at:Date.now()+200});
+    }
   });
   c.on('data',d=>execMsg(d,c.peer));
   c.on('close',()=>{
@@ -429,21 +466,24 @@ function wireConn(c){
   });
   c.on('error',()=>setFD('#f87171',false));
 }
-
 function execMsg(msg,from){
-  /* Host relays media commands */
   if(isHost&&from){
     if(['play','pause','seekplay'].indexOf(msg.cmd)!==-1)sendAll(msg,from);
   }
   const lf=msg.at-clockOffset;
   if(msg.cmd==='play'){
-    scheduleAt(lf,()=>{doPlay();flash('▶');});
+    scheduleAt(lf,()=>{doPlay();flash('▶');info('▶ Play');});
   }else if(msg.cmd==='pause'){
-    scheduleAt(lf,()=>{doPause();const v=vid();if(v&&msg.t!=null)v.currentTime=msg.t;flash('⏸');});
+    scheduleAt(lf,()=>{doPause();if(msg.t!=null)doSeek(msg.t);flash('⏸');info('⏸ Pause');});
   }else if(msg.cmd==='seekplay'){
-    scheduleAt(lf,()=>doJump(msg.val,msg.play));
+    scheduleAt(lf,()=>{doSeek(msg.val);if(msg.play)doPlay();else shadowPause();updatePlayBtn();info('→ '+Math.floor(msg.val/60)+':'+String(Math.floor(msg.val%60)).padStart(2,'0'));});
+  }else if(msg.cmd==='syncstate'){
+    /* Got initial state from host */
+    scheduleAt(lf,()=>{doSeek(msg.t);if(msg.playing)doPlay();else shadowPause();updatePlayBtn();});
   }else if(msg.cmd==='movieurl'){
     document.getElementById('movieUrl').value=msg.val;
+    movieUrlVal=msg.val;
+    if(iframeEl && iframeEl.src!==msg.val){iframeEl.src=msg.val;}
     flash('movie synced');
   }else if(msg.cmd==='hello'){
     if(isHost&&(blacklist[msg.peerId]||blacklist['name:'+msg.name])){
@@ -467,7 +507,7 @@ function execMsg(msg,from){
     if(msg.val===myPeerId){
       Object.keys(conns).forEach(pid=>{try{conns[pid].close();}catch(e){}});
       conns={};try{peer.destroy();}catch(e){}peer=null;
-      const v=vid();if(v)v.pause();
+      shadowPause();
       setSS('er','You were removed from this room');
       setFD('#f87171',false);
       flash('⛔ removed');
@@ -485,9 +525,7 @@ function execMsg(msg,from){
     setSS('ok','Room '+roomId+' · synced · '+med+'ms');
   }
 }
-
 function doPing(){sendAll({cmd:'ping',sentAt:Date.now()});pingCount++;setTimeout(doPing,pingCount<=3?80:4000);}
-
 function tryAsA(){
   const p=new Peer(roomId+'_A',{debug:0});
   p.on('open',()=>{
@@ -511,7 +549,7 @@ function tryAsB(){
   p.on('error',e=>setSS('er','Error: '+e.type));
 }
 
-/* ── Join room ── */
+/* ── Join + auto-start ── */
 function joinRoom(){
   const code=document.getElementById('joinIn').value.trim().toUpperCase();
   if(!code)return;
@@ -521,15 +559,12 @@ function joinRoom(){
   document.getElementById('fbadge').textContent=roomId;
   startSession();
 }
-
 function startSession(){
   myName=document.getElementById('nameIn').value.trim()||'Guest';
   document.getElementById('fbadge').textContent=roomId;
   setSS('sp','Connecting to room '+roomId+'…');
   tryAsA();
 }
-
-/* ── Auto-start when name entered ── */
 let sessionStarted=false;
 document.getElementById('nameIn').addEventListener('blur',()=>{
   if(document.getElementById('nameIn').value.trim()&&!sessionStarted){
