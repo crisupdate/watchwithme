@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watch Party</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0f;color:#f0eeff;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem}
+h1{font-size:1.5rem;font-weight:700;color:#a78bfa;margin-bottom:.2rem}
+.sub{font-size:.82rem;color:#7a7a9a;margin-bottom:1.4rem;text-align:center}
+.card{background:#13131a;border:0.5px solid rgba(255,255,255,.08);border-radius:12px;padding:1.1rem 1.3rem;width:100%;max-width:560px;margin-bottom:.75rem}
+.lbl{font-size:.67rem;text-transform:uppercase;letter-spacing:.08em;color:#7a7a9a;margin-bottom:.45rem;font-weight:500}
+.step{display:flex;gap:.65rem;align-items:flex-start;margin-bottom:.7rem;font-size:.83rem;line-height:1.6;color:#b0b0c8}
+.step:last-child{margin-bottom:0}
+.n{min-width:22px;height:22px;border-radius:50%;background:#7c5cfc;color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.bmk-wrap{background:#1c1c26;border:0.5px solid rgba(124,92,252,.35);border-radius:8px;padding:.85rem 1rem;margin:.6rem 0;display:flex;align-items:center;gap:.75rem}
+.bmk-wrap a{display:inline-block;background:#7c5cfc;color:#fff;padding:.5rem 1rem;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.bmk-wrap a:hover{background:#6a4ce0}
+.bmk-wrap p{font-size:.75rem;color:#7a7a9a;line-height:1.5}
+.row{display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem}
+input{flex:1;background:#1c1c26;border:0.5px solid rgba(255,255,255,.1);border-radius:8px;color:#f0eeff;padding:.55rem .8rem;font-size:.85rem;outline:none;font-family:monospace;letter-spacing:.05em}
+input:focus{border-color:#7c5cfc}
+input::placeholder{color:#3a3a5a}
+button{background:#7c5cfc;border:none;border-radius:8px;color:#fff;padding:.55rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+button:hover{background:#6a4ce0}
+.st{display:flex;align-items:center;gap:.4rem;font-size:.77rem;color:#7a7a9a;padding:.4rem .65rem;background:#1c1c26;border-radius:8px;margin-top:.5rem}
+.dot{width:6px;height:6px;border-radius:50%;background:#3a3a5a;flex-shrink:0}
+.ok{background:#34d399!important}
+.sp{background:#fbbf24!important;animation:bl .9s infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+</style>
+</head>
+<body>
+<h1>🎬 Watch Party</h1>
+<p class="sub">Frame-accurate sync — controls float over the movie even in fullscreen</p>
+
+<div class="card">
+  <div class="lbl">Setup — do this on both devices</div>
+  <div class="step"><span class="n">1</span><span>Drag <strong style="color:#f0eeff">⚡ WatchParty</strong> to your bookmarks bar — once only</span></div>
+  <div class="bmk-wrap">
+    <a id="bmk" href="#">⚡ WatchParty</a>
+    <p>Drag to bookmarks bar. Injects a floating control bar into the movie tab.</p>
+  </div>
+  <div class="step"><span class="n">2</span><span>Open the movie: <a href="https://api.ortified.ws/embed/movie/42789" target="_blank" style="color:#a78bfa">api.ortified.ws/embed/movie/42789</a></span></div>
+  <div class="step"><span class="n">3</span><span>While on the movie tab, click <strong style="color:#f0eeff">⚡ WatchParty</strong> → enter room code + your name</span></div>
+  <div class="step"><span class="n">4</span><span>Friend does the same with the <strong style="color:#f0eeff">same room code</strong></span></div>
+</div>
+
+<div class="card">
+  <div class="lbl">Room code — share with your friend</div>
+  <div class="row">
+    <input id="roomBox" readonly style="color:#a78bfa;cursor:default;font-size:1.1rem;letter-spacing:.12em;text-align:center"/>
+    <button onclick="copyRoom(this)">Copy</button>
+  </div>
+  <div class="st"><div class="dot ok"></div><span>Share this code — everyone types it when the bookmarklet asks</span></div>
+</div>
+
+<script>
+const roomId = Math.random().toString(36).slice(2,8).toUpperCase();
+document.getElementById('roomBox').value = roomId;
+function copyRoom(btn){
+  navigator.clipboard.writeText(roomId).catch(()=>{});
+  btn.textContent='Copied!';
+  setTimeout(()=>btn.textContent='Copy',1800);
+}
+
+const BOOKMARKLET = `(function(){
+if(window.__wp && !window.__wpKicked){ alert('WatchParty active! Room: '+window.__wpRoom); return; }
+/* If kicked, clean up old bar/panel before restarting */
+if(window.__wpKicked){
+  window.__wp=false;
+  window.__wpKicked=false;
+  var oldBar=document.getElementById('__wpbar');
+  if(oldBar) oldBar.parentNode.removeChild(oldBar);
+  var oldPanel=document.getElementById('__wppanel');
+  if(oldPanel) oldPanel.parentNode.removeChild(oldPanel);
+  var oldWrap=document.getElementById('__wpwrap');
+  if(oldWrap && oldWrap.parentNode){
+    while(oldWrap.firstChild) oldWrap.parentNode.insertBefore(oldWrap.firstChild,oldWrap);
+    oldWrap.parentNode.removeChild(oldWrap);
+  }
+}
+window.__wp=true;
+
+var s=document.createElement('script');
+s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+s.onload=init;
+s.onerror=function(){ alert('Could not load PeerJS.'); window.__wp=false; };
+document.head.appendChild(s);
+
+function init(){
+  var ROOM=prompt('Room code:','').trim().toUpperCase();
+  if(!ROOM){ window.__wp=false; return; }
+  var NAME=(prompt('Your name:','')||'Guest').trim().slice(0,20)||'Guest';
+  window.__wpRoom=ROOM;
+  window.__wpName=NAME;
+
+  var BUFFER_MS=80, clockOffset=0, rttSamples=[];
+  var pendingTimer=null, peer=null;
+  var isPlaying=false, remoteSeeking=false;
+  var isHost=false, myPeerId='';
+  var conns={}, members={}, blacklist={};
+  var membersEl=null, countEl=null, panel=null, panelVisible=false;
+  var pingCount=0;
+
+  /* ── Video controls ── */
+  function vid(){ return document.querySelector('video'); }
+  function doPlay(){ var v=vid(); if(v){ isPlaying=true; v.play().catch(function(){}); } }
+  function doPause(){ var v=vid(); if(v){ isPlaying=false; v.pause(); } }
+  function doToggle(){ var v=vid(); if(!v) return; if(v.paused) doPlay(); else doPause(); }
+
+  function doJump(s, thenPlay){
+    var v=vid(); if(!v) return;
+    remoteSeeking=true;
+    var wasPlaying=!v.paused;
+    v.pause();
+    v.currentTime=s;
+    flash('\\u23f3 buffering\\u2026');
+    setDot('#f59e0b',true);
+    function onReady(){
+      v.removeEventListener('canplay',onReady);
+      clearTimeout(bufTimer);
+      remoteSeeking=false;
+      setDot('#34d399',false);
+      if(thenPlay||wasPlaying){ v.play().catch(function(){}); isPlaying=true; updateBtn(); }
+    }
+    v.addEventListener('canplay',onReady);
+    var bufTimer=setTimeout(function(){
+      v.removeEventListener('canplay',onReady);
+      remoteSeeking=false;
+      setDot('#34d399',false);
+      if(thenPlay||wasPlaying){ v.play().catch(function(){}); isPlaying=true; updateBtn(); }
+    },6000);
+  }
+
+  /* ── Scheduled execution ── */
+  function scheduleAt(localTs,fn){
+    clearTimeout(pendingTimer);
+    var d=localTs-Date.now();
+    if(d<=0){ fn(); return; }
+    pendingTimer=setTimeout(fn,d);
+  }
+
+  /* ── Networking ── */
+  function send(msg, excludeId){
+    Object.keys(conns).forEach(function(pid){
+      if(pid!==excludeId && conns[pid] && conns[pid].open) conns[pid].send(msg);
+    });
+  }
+
+  function broadcast(msg, excludeId){ send(msg, excludeId); }
+
+  function removeMember(peerId){
+    /* Blacklist by peer ID and by name */
+    blacklist[peerId]=true;
+    var kickedName=(members[peerId]||{}).name;
+    if(kickedName) blacklist['name:'+kickedName]=true;
+    /* Tell that specific peer they are kicked BEFORE closing */
+    if(conns[peerId] && conns[peerId].open){
+      try{ conns[peerId].send({cmd:'kicked',val:peerId}); }catch(e){}
+    }
+    /* Tell all OTHER peers to remove this member from their list */
+    Object.keys(conns).forEach(function(pid){
+      if(pid!==peerId && conns[pid] && conns[pid].open){
+        try{ conns[pid].send({cmd:'memberleft',val:peerId}); }catch(e){}
+      }
+    });
+    /* Now close the kicked peer's connection */
+    setTimeout(function(){
+      if(conns[peerId]){ try{ conns[peerId].close(); }catch(e){} delete conns[peerId]; }
+      delete members[peerId];
+      renderMembers();
+    }, 300);
+  }
+
+  function renderMembers(){
+    if(!membersEl||!countEl) return;
+    var list=Object.values(members);
+    countEl.textContent=list.length;
+    membersEl.innerHTML='';
+    list.forEach(function(m,i){
+      if(i>0){
+        var dv=document.createElement('div');
+        dv.style.cssText='width:0.5px;height:14px;background:rgba(255,255,255,.12);flex-shrink:0';
+        membersEl.appendChild(dv);
+      }
+      var chip=document.createElement('div');
+      chip.style.cssText='display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:rgba(255,255,255,.75);white-space:nowrap';
+      var d2=document.createElement('div');
+      d2.style.cssText='width:5px;height:5px;border-radius:50%;background:#34d399;flex-shrink:0';
+      var nm=document.createElement('span');
+      nm.textContent=m.name+(m.peerId===myPeerId?' •':'');
+      chip.appendChild(d2);
+      chip.appendChild(nm);
+      if(isHost && m.peerId!==myPeerId){
+        var kb=document.createElement('button');
+        kb.textContent='✕';
+        kb.title='Remove '+m.name;
+        kb.style.cssText='background:rgba(255,60,60,.15);border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;color:rgba(255,100,100,.8);font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s;line-height:1';
+        kb.onmouseover=function(){ kb.style.background='rgba(255,60,60,.35)'; };
+        kb.onmouseout=function(){ kb.style.background='rgba(255,60,60,.15)'; };
+        kb.onclick=(function(pid){ return function(e){ e.stopPropagation(); removeMember(pid); }; })(m.peerId);
+        chip.appendChild(kb);
+      }
+      membersEl.appendChild(chip);
+    });
+  }
+
+  function addMember(peerId, name){
+    members[peerId]={peerId:peerId,name:name};
+    renderMembers();
+  }
+
+  function wireConn(c){
+    /* Reject blacklisted peers immediately */
+    if(isHost && blacklist[c.peer]){
+      try{ c.send({cmd:'kicked',val:c.peer}); }catch(e){}
+      setTimeout(function(){ try{ c.close(); }catch(e){} }, 200);
+      return;
+    }
+    conns[c.peer]=c;
+    c.on('open',function(){
+      /* Double-check blacklist on open (connection may have been queued) */
+      if(isHost && blacklist[c.peer]){
+        try{ c.send({cmd:'kicked',val:c.peer}); }catch(e){}
+        setTimeout(function(){ try{ c.close(); }catch(e){} delete conns[c.peer]; }, 200);
+        return;
+      }
+      setDot('#fbbf24',true); flash('measuring\\u2026'); doPing();
+      c.send({cmd:'hello',name:NAME,peerId:myPeerId});
+      if(isHost) c.send({cmd:'memberlist',members:Object.values(members)});
+    });
+    c.on('data',function(d){ execMsg(d,c.peer); });
+    c.on('close',function(){
+      delete conns[c.peer];
+      var mname=(members[c.peer]||{}).name||c.peer;
+      delete members[c.peer];
+      renderMembers();
+      flash(mname+' left');
+      if(Object.keys(conns).length===0){ setDot('#f87171',false); }
+    });
+    c.on('error',function(){ setDot('#f87171',false); });
+  }
+
+  function execMsg(msg, fromPeerId){
+    /* Host relays media commands to all other peers */
+    if(isHost && fromPeerId){
+      var mc=['play','pause','jumpto','seekplay']; /* kicked/memberleft handled separately */
+      if(mc.indexOf(msg.cmd)!==-1) broadcast(msg,fromPeerId);
+    }
+    var localFireAt=msg.at-clockOffset;
+    if(msg.cmd==='play'){
+      scheduleAt(localFireAt,function(){ doPlay(); updateBtn(); flash('\\u25b6'); });
+    } else if(msg.cmd==='pause'){
+      scheduleAt(localFireAt,function(){ doPause(); if(msg.t!=null && vid()) vid().currentTime=msg.t; updateBtn(); flash('\\u23f8'); });
+    } else if(msg.cmd==='seekplay'){
+      scheduleAt(localFireAt,function(){ doJump(msg.val,msg.play); });
+    } else if(msg.cmd==='jumpto'){
+      scheduleAt(localFireAt,function(){ doJump(msg.val,msg.play); });
+    } else if(msg.cmd==='hello'){
+      /* If host has blacklisted this peer ID or their name, reject */
+      if(isHost && (blacklist[msg.peerId] || blacklist['name:'+msg.name])){
+        send({cmd:'kicked',val:msg.peerId||myPeerId});
+        setTimeout(function(){ if(conns[fromPeerId]){ try{ conns[fromPeerId].close(); }catch(e){} delete conns[fromPeerId]; } },200);
+        return;
+      }
+      addMember(msg.peerId,msg.name);
+      if(isHost) broadcast({cmd:'memberlist',members:Object.values(members)});
+      flash(msg.name+' joined');
+      setDot('#34d399',false);
+    } else if(msg.cmd==='memberlist'){
+      members={};
+      msg.members.forEach(function(m){ members[m.peerId]=m; });
+      members[myPeerId]={peerId:myPeerId,name:NAME};
+      renderMembers();
+      setDot('#34d399',false);
+    } else if(msg.cmd==='memberleft'){
+      /* Another peer was removed — just update our member list */
+      delete members[msg.val];
+      renderMembers();
+    } else if(msg.cmd==='kicked'){
+      if(msg.val===myPeerId){
+        /* Destroy everything — no reconnection possible */
+        window.__wpKicked=true;
+        /* Close all connections */
+        Object.keys(conns).forEach(function(pid){ try{ conns[pid].close(); }catch(e){} });
+        conns={};
+        /* Destroy peer so they can't reconnect */
+        try{ peer.destroy(); }catch(e){}
+        peer=null;
+        /* Stop the video */
+        var v=vid(); if(v) v.pause();
+        /* Remove panel */
+        if(panel){ try{ panel.parentNode.removeChild(panel); }catch(e){} }
+        /* Show kicked message — clicking bookmarklet again lets them join a new room */
+        bar.innerHTML='';
+        bar.style.cssText=[
+          'position:fixed','bottom:24px','left:50%','transform:translateX(-50%)',
+          'background:rgba(10,10,20,.52)',
+          '-webkit-backdrop-filter:saturate(180%) blur(28px)',
+          'backdrop-filter:saturate(180%) blur(28px)',
+          'border:0.5px solid rgba(255,80,80,.4)',
+          'border-radius:999px','padding:8px 18px',
+          'z-index:2147483647','display:flex','align-items:center','gap:8px',
+          'font-family:-apple-system,BlinkMacSystemFont,sans-serif',
+          'box-shadow:0 2px 24px rgba(0,0,0,.45)'
+        ].join(';');
+        var kDot=document.createElement('div');
+        kDot.style.cssText='width:6px;height:6px;border-radius:50%;background:#f87171;flex-shrink:0';
+        var kMsg=document.createElement('span');
+        kMsg.style.cssText='font-size:11px;font-weight:500;color:rgba(255,150,150,.9);white-space:nowrap';
+        kMsg.textContent='Removed from room · click ⚡ WatchParty to join another';
+        bar.appendChild(kDot);
+        bar.appendChild(kMsg);
+        window.__wp=true;
+        window.__wpKicked=true;        return;
+      }
+      delete members[msg.val];
+      renderMembers();
+    } else if(msg.cmd==='ping'){
+      send({cmd:'pong',sentAt:msg.sentAt,pongAt:Date.now()});
+    } else if(msg.cmd==='pong'){
+      var rtt=Date.now()-msg.sentAt;
+      clockOffset=msg.pongAt-(msg.sentAt+rtt/2);
+      rttSamples.push(rtt);
+      if(rttSamples.length>5) rttSamples.shift();
+      var sorted=rttSamples.slice().sort(function(a,b){return a-b;});
+      var med=sorted[Math.floor(sorted.length/2)];
+      BUFFER_MS=Math.max(60,Math.round(med/2+30));
+      setDot('#34d399',false);
+      flash('synced \\u00b7 '+med+'ms');
+    }
+  }
+
+  function doPing(){
+    send({cmd:'ping',sentAt:Date.now()});
+    pingCount++;
+    setTimeout(doPing, pingCount<=3?80:4000);
+  }
+
+  function sendCmd(cmd,val){
+    var fireAt=Date.now()+BUFFER_MS;
+    var t=vid()?vid().currentTime:0;
+    send({cmd:cmd,val:val,at:fireAt,t:t});
+    scheduleAt(fireAt,function(){
+      if(cmd==='play'){ doPlay(); updateBtn(); }
+      else if(cmd==='pause'){ doPause(); if(vid()) vid().currentTime=t; updateBtn(); }
+    });
+    flash(cmd==='play'?'\\u25b6':'\\u23f8');
+  }
+
+  function sendSeek(delta){
+    var v=vid(); if(!v) return;
+    var wasPlaying=!v.paused;
+    var target=Math.max(0,v.currentTime+delta);
+    var fireAt=Date.now()+BUFFER_MS;
+    send({cmd:'seekplay',val:target,play:wasPlaying,at:fireAt});
+    scheduleAt(fireAt,function(){ doJump(target,wasPlaying); });
+    flash((delta>0?'+':'')+delta+'s');
+  }
+
+  function tryAsA(){
+    var p=new Peer(ROOM+'_A',{debug:0});
+    p.on('open',function(){
+      peer=p; myPeerId=p.id; isHost=true;
+      members[myPeerId]={peerId:myPeerId,name:NAME};
+      renderMembers();
+      setDot('#fbbf24',true); flash('waiting\\u2026');
+      p.on('connection',function(c){ wireConn(c); });
+    });
+    p.on('error',function(e){ if(e.type==='unavailable-id') tryAsB(); else flash('err:'+e.type); });
+  }
+  function tryAsB(){
+    var gid=ROOM+'_'+Math.random().toString(36).slice(2,5).toUpperCase();
+    var p=new Peer(gid,{debug:0});
+    p.on('open',function(){
+      peer=p; myPeerId=p.id; isHost=false;
+      setDot('#fbbf24',true); flash('connecting\\u2026');
+      wireConn(p.connect(ROOM+'_A',{reliable:true,serialization:'json'}));
+    });
+    p.on('error',function(e){ flash('err:'+e.type); });
+  }
+
+  /* ── CSS ── */
+  var styleEl=document.createElement('style');
+  styleEl.textContent=[
+    '.button_1_n.iconMD_2O8{display:none!important}',
+    '.button_1_n.icon_3ze{display:none!important}',
+    ':fullscreen [class*="controls"]{display:none!important}',
+    ':fullscreen [class*="Controls"]{display:none!important}',
+    ':fullscreen [class*="toolbar"]{display:none!important}',
+    ':fullscreen [class*="overlay"]{display:none!important}',
+    ':fullscreen [class*="panel"]{display:none!important}',
+    ':fullscreen [class*="bottom"]{display:none!important}',
+    ':fullscreen #__wpbar{display:flex!important;position:fixed!important;z-index:2147483647!important}',
+    ':fullscreen #__wppanel{display:flex!important;position:fixed!important;z-index:2147483646!important}',
+    ':fullscreen video{display:block!important}',
+    ':-webkit-full-screen [class*="controls"]{display:none!important}',
+    ':-webkit-full-screen [class*="Controls"]{display:none!important}',
+    ':-webkit-full-screen [class*="toolbar"]{display:none!important}',
+    ':-webkit-full-screen [class*="overlay"]{display:none!important}',
+    ':-webkit-full-screen [class*="panel"]{display:none!important}',
+    ':-webkit-full-screen [class*="bottom"]{display:none!important}',
+    ':-webkit-full-screen #__wpbar{display:flex!important;position:fixed!important;z-index:2147483647!important}',
+    ':-webkit-full-screen #__wppanel{display:flex!important;position:fixed!important;z-index:2147483646!important}',
+    ':-webkit-full-screen video{display:block!important}',
+    '@keyframes __wpbl{0%,100%{opacity:1}50%{opacity:.25}}',
+    '#__wpbtn{transition:transform 80ms ease}',
+    '#__wpbtn:active{transform:scale(.82)!important}',
+    '#__wpbar{transition:opacity 0.5s ease,transform 0.5s ease}',
+    '#__wpbar.__wphidden{opacity:0!important;pointer-events:none!important;transform:translateX(-50%) translateY(16px)!important}',
+    '#__wppanel{transition:opacity 0.3s ease}'
+  ].join('');
+  document.head.appendChild(styleEl);
+
+  /* ── Strip native controls ── */
+  function stripControls(v){
+    if(!v||v.__wpbound) return;
+    v.__wpbound=true;
+    v.removeAttribute('controls');
+    v.addEventListener('play',function(){ isPlaying=true; updateBtn(); maybeHideBar(); });
+    v.addEventListener('pause',function(){ isPlaying=false; updateBtn(); showBar(); });
+    v.addEventListener('waiting',function(){ if(!remoteSeeking) flash('\\u23f3 buffering\\u2026'); });
+    v.addEventListener('playing',function(){ flash(''); });
+    var seekDebounce;
+    v.addEventListener('seeked',function(){
+      if(remoteSeeking) return;
+      clearTimeout(seekDebounce);
+      seekDebounce=setTimeout(function(){
+        var t=v.currentTime, wp=!v.paused;
+        var fireAt=Date.now()+BUFFER_MS;
+        send({cmd:'seekplay',val:t,play:wp,at:fireAt});
+        flash('\\u2192 '+Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'));
+      },300);
+    });
+  }
+  var mobsv=new MutationObserver(function(){ stripControls(vid()); });
+  mobsv.observe(document.body,{childList:true,subtree:true});
+  stripControls(vid());
+
+  /* ── Force highest quality ── */
+  function forceHighQuality(){
+    /* 1. If the page exposes an HLS.js instance, set level to highest */
+    var hls = window.Hls && window.Hls.instances && window.Hls.instances[0];
+    if(!hls){
+      /* Search common variable names the player might use */
+      var names=['hls','hlsPlayer','player','_hls','hlsInstance'];
+      for(var i=0;i<names.length;i++){
+        if(window[names[i]] && window[names[i]].levels) { hls=window[names[i]]; break; }
+      }
+    }
+    if(hls && hls.levels && hls.levels.length>0){
+      /* Sort levels by bandwidth descending, pick highest */
+      var best=0;
+      for(var j=1;j<hls.levels.length;j++){
+        if((hls.levels[j].bitrate||0)>(hls.levels[best].bitrate||0)) best=j;
+      }
+      hls.currentLevel=best;
+      hls.loadLevel=best;
+      hls.nextLevel=best;
+      flash('HD • '+Math.round((hls.levels[best].bitrate||0)/1000)+'kbps');
+      return;
+    }
+
+    /* 2. Fallback: if video has multiple sources, pick the last one (usually highest) */
+    var v=vid();
+    if(v && v.textTracks){
+      /* Some players expose quality via textTracks or videoTracks */
+      var vt=v.videoTracks;
+      if(vt && vt.length>0){
+        for(var k=0;k<vt.length;k++) vt[k].selected=(k===vt.length-1);
+      }
+    }
+  }
+
+  /* Try immediately and again after a short delay (player may init async) */
+  setTimeout(forceHighQuality, 1000);
+  setTimeout(forceHighQuality, 3000);
+  setTimeout(forceHighQuality, 6000);
+
+  /* Also try whenever a new video element appears */
+  var qualObs=new MutationObserver(function(){ setTimeout(forceHighQuality,500); });
+  qualObs.observe(document.body,{childList:true,subtree:true});
+
+  /* Intercept spacebar — route through sync instead of letting browser handle it */
+  document.addEventListener('keydown', function(e){
+    if(e.code!=='Space' && e.key!==' ') return;
+    /* Ignore if user is typing in an input */
+    var tag=(e.target||{}).tagName||'';
+    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+    e.preventDefault();
+    e.stopPropagation();
+    var v=vid();
+    sendCmd(v&&!v.paused?'pause':'play');
+  }, true); /* capture phase — fires before the player sees it */
+
+  /* ── Build bar ── */
+  var bar=document.createElement('div');
+  bar.id='__wpbar';
+  bar.style.cssText=[
+    'position:fixed','bottom:24px','left:50%','transform:translateX(-50%)',
+    'background:rgba(10,10,20,.52)',
+    '-webkit-backdrop-filter:saturate(180%) blur(28px)',
+    'backdrop-filter:saturate(180%) blur(28px)',
+    'border:0.5px solid rgba(255,255,255,.18)',
+    'border-radius:999px','padding:6px 10px',
+    'z-index:2147483647','display:flex','align-items:center','gap:6px',
+    'font-family:-apple-system,BlinkMacSystemFont,sans-serif',
+    'box-shadow:0 2px 24px rgba(0,0,0,.45),inset 0 0.5px 0 rgba(255,255,255,.1)'
+  ].join(';');
+
+  var dot=document.createElement('div');
+  dot.style.cssText='width:6px;height:6px;border-radius:50%;flex-shrink:0;background:#fbbf24;animation:__wpbl .9s infinite;transition:background .4s';
+
+  var badge=document.createElement('span');
+  badge.style.cssText='font-size:11px;font-weight:600;color:rgba(255,255,255,.5);white-space:nowrap;letter-spacing:.03em;min-width:70px';
+  badge.textContent=ROOM;
+
+  function sep(){
+    var d=document.createElement('div');
+    d.style.cssText='width:0.5px;height:16px;background:rgba(255,255,255,.14);flex-shrink:0;margin:0 2px';
+    return d;
+  }
+
+  function mkPill(txt,fn){
+    var b=document.createElement('button');
+    b.textContent=txt;
+    b.style.cssText='background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:500;color:rgba(255,255,255,.7);transition:background .12s;white-space:nowrap';
+    b.onmouseover=function(){ b.style.background='rgba(255,255,255,.18)'; };
+    b.onmouseout=function(){ b.style.background='rgba(255,255,255,.08)'; };
+    b.onclick=fn; return b;
+  }
+
+  /* Play/pause toggle */
+  var playBtn=document.createElement('button');
+  playBtn.id='__wpbtn';
+  playBtn.style.cssText='background:rgba(255,255,255,.92);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;color:#111;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 2px;box-shadow:0 1px 6px rgba(0,0,0,.3)';
+  playBtn.innerHTML='\\u25b6';
+  playBtn.title='Play / Pause';
+  playBtn.onclick=function(){ sendCmd(vid()&&!vid().paused?'pause':'play'); };
+
+  function updateBtn(){
+    var v=vid();
+    playBtn.innerHTML=(v&&!v.paused)?'\\u23f8':'\\u25b6';
+  }
+  setInterval(updateBtn,500);
+
+  /* People button */
+  var peopleBtn=document.createElement('button');
+  peopleBtn.style.cssText='background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:4px 9px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;white-space:nowrap;transition:background .12s;font-weight:500';
+  peopleBtn.onmouseover=function(){ peopleBtn.style.background='rgba(255,255,255,.18)'; };
+  peopleBtn.onmouseout=function(){ if(!panelVisible) peopleBtn.style.background='rgba(255,255,255,.08)'; };
+  countEl=document.createElement('span');
+  countEl.textContent='1';
+  peopleBtn.appendChild(document.createTextNode('\\uD83D\\uDC65\\u202F'));
+  peopleBtn.appendChild(countEl);
+
+  /* Members panel */
+  panel=document.createElement('div');
+  panel.id='__wppanel';
+  panel.style.cssText=[
+    'position:fixed','bottom:72px','left:50%','transform:translateX(-50%)',
+    'background:rgba(10,10,20,.52)',
+    '-webkit-backdrop-filter:saturate(180%) blur(28px)',
+    'backdrop-filter:saturate(180%) blur(28px)',
+    'border:0.5px solid rgba(255,255,255,.18)',
+    'border-radius:999px','padding:6px 14px',
+    'z-index:2147483646','min-width:0','max-width:400px',
+    'display:none','flex-direction:row','align-items:center','gap:8px','flex-wrap:wrap',
+    'box-shadow:0 2px 24px rgba(0,0,0,.45),inset 0 0.5px 0 rgba(255,255,255,.1)',
+    'font-family:-apple-system,BlinkMacSystemFont,sans-serif',
+    'transition:opacity 0.3s ease'
+  ].join(';');
+
+  var panelTitle=document.createElement('span');
+  panelTitle.style.cssText='font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.3);font-weight:600;white-space:nowrap;flex-shrink:0';
+  panelTitle.textContent='room';
+  panel.appendChild(panelTitle);
+
+  var panelDivider=document.createElement('div');
+  panelDivider.style.cssText='width:0.5px;height:16px;background:rgba(255,255,255,.14);flex-shrink:0';
+  panel.appendChild(panelDivider);
+
+  membersEl=document.createElement('div');
+  membersEl.style.cssText='display:flex;flex-direction:row;align-items:center;gap:5px;flex-wrap:wrap';
+  panel.appendChild(membersEl);
+
+  /* Close button on the panel itself */
+  var panelClose=document.createElement('button');
+  panelClose.textContent='\u00d7';
+  panelClose.style.cssText='background:rgba(255,255,255,.08);border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;color:rgba(255,255,255,.5);font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s;line-height:1;margin-left:2px';
+  panelClose.onmouseover=function(){ panelClose.style.background='rgba(255,255,255,.18)'; };
+  panelClose.onmouseout=function(){ panelClose.style.background='rgba(255,255,255,.08)'; };
+  panelClose.onclick=function(e){
+    e.stopPropagation();
+    panelVisible=false; panel.style.display='none';
+    peopleBtn.style.background='rgba(255,255,255,.08)';
+  };
+  panel.appendChild(panelClose);
+
+  document.body.appendChild(panel);
+
+  peopleBtn.onclick=function(e){
+    e.stopPropagation();
+    panelVisible=!panelVisible;
+    panel.style.display=panelVisible?'flex':'none';
+    peopleBtn.style.background=panelVisible?'rgba(255,255,255,.2)':'rgba(255,255,255,.08)';
+  };
+
+  /* Fullscreen button */
+  var fsBtn=document.createElement('button');
+  fsBtn.style.cssText='background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:5px 9px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.7);transition:background .12s;display:flex;align-items:center;justify-content:center;line-height:1';
+  fsBtn.title='Toggle fullscreen';
+  fsBtn.innerHTML='\\u26f6';
+  fsBtn.onmouseover=function(){ fsBtn.style.background='rgba(255,255,255,.18)'; };
+  fsBtn.onmouseout=function(){ fsBtn.style.background='rgba(255,255,255,.08)'; };
+
+  function isFullscreen(){
+    return !!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement);
+  }
+  function showBar(){ bar.classList.remove('__wphidden'); clearTimeout(hideTimer); }
+  var hideTimer;
+  function maybeHideBar(){
+    if(!isFullscreen()) return;
+    var v=vid();
+    if(v&&!v.paused) hideTimer=setTimeout(function(){ bar.classList.add('__wphidden'); },2500);
+  }
+  document.addEventListener('mousemove',function(){ if(!isFullscreen()) return; showBar(); maybeHideBar(); });
+  document.addEventListener('fullscreenchange',function(){ showBar(); placeBar(); updateFsBtn(); maybeHideBar(); });
+  document.addEventListener('webkitfullscreenchange',function(){ showBar(); placeBar(); updateFsBtn(); maybeHideBar(); });
+
+  function updateFsBtn(){ fsBtn.innerHTML=isFullscreen()?'\\u29c8':'\\u26f6'; }
+
+  fsBtn.onclick=function(){
+    if(isFullscreen()){
+      (document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen).call(document);
+      return;
+    }
+    var v=vid();
+    var wrapper=document.getElementById('__wpwrap');
+    if(!wrapper&&v&&v.parentElement){
+      wrapper=document.createElement('div');
+      wrapper.id='__wpwrap';
+      wrapper.style.cssText='position:relative;width:100%;height:100%;background:#000';
+      v.parentElement.insertBefore(wrapper,v);
+      wrapper.appendChild(v);
+    }
+    var el=wrapper||v||document.documentElement;
+    var req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen;
+    if(req) req.call(el);
+  };
+
+  function placeBar(){
+    var fs=document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement;
+    if(!fs){ if(bar.parentNode!==document.body) document.body.appendChild(bar); return; }
+    var target=fs.tagName==='VIDEO'?(fs.parentElement||document.body):fs;
+    if(bar.parentNode!==target) target.appendChild(bar);
+    if(panel&&panel.parentNode!==target) target.appendChild(panel);
+    bar.style.position='fixed';
+    bar.style.zIndex='2147483647';
+  }
+
+  /* Assemble bar */
+  bar.appendChild(dot);
+  bar.appendChild(badge);
+  bar.appendChild(sep());
+  bar.appendChild(peopleBtn);
+  bar.appendChild(sep());
+  bar.appendChild(mkPill('\\u23ee',function(){
+    var v=vid(),wp=v&&!v.paused,fa=Date.now()+BUFFER_MS;
+    send({cmd:'seekplay',val:0,play:wp,at:fa});
+    scheduleAt(fa,function(){ doJump(0,wp); });
+    flash('\\u23ee start');
+  }));
+  bar.appendChild(mkPill('\\u221230s',function(){ sendSeek(-30); }));
+  bar.appendChild(mkPill('\\u221210s',function(){ sendSeek(-10); }));
+  bar.appendChild(playBtn);
+  bar.appendChild(mkPill('+10s',function(){ sendSeek(10); }));
+  bar.appendChild(mkPill('+30s',function(){ sendSeek(30); }));
+  bar.appendChild(sep());
+  bar.appendChild(fsBtn);
+
+  document.body.appendChild(bar);
+  placeBar();
+
+  function setDot(col,anim){
+    dot.style.background=col;
+    dot.style.animation=anim?'__wpbl .9s infinite':'none';
+  }
+  var flashT;
+  function flash(msg){
+    badge.textContent=msg||ROOM;
+    if(!msg) return;
+    clearTimeout(flashT);
+    flashT=setTimeout(function(){ badge.textContent=ROOM; },2000);
+  }
+
+  /* Boot */
+  tryAsA();
+  flash('starting\\u2026');
+}
+})();`;
+
+document.getElementById('bmk').href = 'javascript:' + encodeURIComponent(BOOKMARKLET);
+</script>
+</body>
+</html>
