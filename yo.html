@@ -3730,8 +3730,32 @@ function init(){
     flash((delta>0?'+':'')+delta+'s');
   }
 
+  /* PeerJS config:
+       - Custom STUN/TURN servers so WebRTC works through strict NAT (most cellular + corporate networks).
+       - Free TURN from Metered/OpenRelay public project (best-effort, no auth needed for the public ones).
+       - When direct P2P fails (symmetric NAT), TURN relays traffic. */
+  var PEER_CONFIG = {
+    debug: 0,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+      ]
+    }
+  };
+
+  /* Retry config — public PeerJS server is flaky, so we retry the
+     guest-to-host connection a few times. */
+  var connectRetries = 0;
+  var MAX_RETRIES = 6;
+  var RETRY_DELAY = 1500;
+
   function tryAsA(){
-    var p=new Peer(ROOM+'_A',{debug:0});
+    var p=new Peer(ROOM+'_A', PEER_CONFIG);
     p.on('open',function(){
       peer=p; myPeerId=p.id; isHost=true;
       members[myPeerId]={peerId:myPeerId,name:NAME};
@@ -3739,17 +3763,72 @@ function init(){
       setDot('#fbbf24',true); flash(T('waiting'));
       p.on('connection',function(c){ wireConn(c); });
     });
-    p.on('error',function(e){ if(e.type==='unavailable-id') tryAsB(); else flash(T('err_prefix')+e.type); });
+    p.on('error',function(e){
+      console.warn('[WatchWithMe] host peer error', e);
+      if(e.type==='unavailable-id'){ tryAsB(); }
+      else if(e.type==='server-error' || e.type==='socket-error' || e.type==='socket-closed' || e.type==='network'){
+        flash(T('err_prefix')+'server, retrying\u2026');
+        setDot('#f87171', true);
+        setTimeout(tryAsA, RETRY_DELAY);
+      } else {
+        flash(T('err_prefix')+e.type);
+      }
+    });
+    p.on('disconnected', function(){
+      console.warn('[WatchWithMe] host disconnected from signaling, reconnecting');
+      try{ p.reconnect(); }catch(e){}
+    });
   }
+
   function tryAsB(){
     var gid=ROOM+'_'+Math.random().toString(36).slice(2,5).toUpperCase();
-    var p=new Peer(gid,{debug:0});
+    var p=new Peer(gid, PEER_CONFIG);
+    var connTimeout;
+
     p.on('open',function(){
       peer=p; myPeerId=p.id; isHost=false;
       setDot('#fbbf24',true); flash(T('connecting'));
-      wireConn(p.connect(ROOM+'_A',{reliable:true,serialization:'json'}));
+      var c = p.connect(ROOM+'_A',{reliable:true,serialization:'json'});
+      wireConn(c);
+
+      /* If the connection doesn't open within 8 seconds, retry. */
+      connTimeout = setTimeout(function(){
+        if(c && !c.open){
+          console.warn('[WatchWithMe] connection timeout, retrying');
+          try{ c.close(); }catch(e){}
+          try{ p.destroy(); }catch(e){}
+          retryGuest();
+        }
+      }, 8000);
+
+      c.on('open', function(){ clearTimeout(connTimeout); connectRetries = 0; });
     });
-    p.on('error',function(e){ flash(T('err_prefix')+e.type); });
+    p.on('error',function(e){
+      console.warn('[WatchWithMe] guest peer error', e);
+      clearTimeout(connTimeout);
+      if(e.type==='peer-unavailable' || e.type==='server-error' || e.type==='socket-error' || e.type==='socket-closed' || e.type==='network'){
+        retryGuest();
+      } else {
+        flash(T('err_prefix')+e.type);
+      }
+    });
+    p.on('disconnected', function(){
+      console.warn('[WatchWithMe] guest disconnected, reconnecting');
+      try{ p.reconnect(); }catch(e){}
+    });
+  }
+
+  function retryGuest(){
+    if(connectRetries >= MAX_RETRIES){
+      flash(T('err_prefix')+'no host found');
+      setDot('#f87171', false);
+      return;
+    }
+    connectRetries++;
+    setDot('#f87171', true);
+    flash('retry '+connectRetries+'/'+MAX_RETRIES);
+    /* Re-decide who's A and who's B — maybe original host left or never registered */
+    setTimeout(tryAsA, RETRY_DELAY);
   }
 
   /* ── CSS ── */
