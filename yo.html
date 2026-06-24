@@ -3800,8 +3800,22 @@ function init(){
     if(!v||v.__wpbound) return;
     v.__wpbound=true;
     v.removeAttribute('controls');
-    v.addEventListener('play',function(){ isPlaying=true; updateBtn(); maybeHideBar(); });
-    v.addEventListener('pause',function(){ isPlaying=false; updateBtn(); showBar(); });
+    /* Unified state-driven UI update — fires on every relevant event so
+       we never miss a state transition (some HLS players fire events out of order) */
+    var syncUI = function(){
+      var vv = vid();
+      if(!vv) return;
+      isPlaying = !vv.paused;
+      updateBtn();
+      if(vv.paused){
+        showBar();        /* paused → always show + clear any pending hide */
+      } else if(isFullscreen()){
+        maybeHideBar();   /* playing in fullscreen → schedule hide */
+      }
+    };
+    ['play','pause','playing','waiting','seeked','canplay','ended','emptied','ratechange'].forEach(function(evt){
+      v.addEventListener(evt, syncUI);
+    });
     v.addEventListener('waiting',function(){ if(!remoteSeeking) flash(T('buffering')); });
     v.addEventListener('playing',function(){ flash(''); });
     var seekDebounce;
@@ -4113,15 +4127,21 @@ function init(){
     }
   }
 
-  /* Safety poll — every 1s ensure visibility matches video state.
-     Catches edge cases where pause events miss (e.g. video element swapped). */
+  /* Fast safety poll — every 250ms force visibility to match video state.
+     Catches all edge cases where events miss (e.g. video element swapped,
+     HLS player firing events out of order). */
   setInterval(function(){
-    if(!isFullscreen()) return;
+    if(!isFullscreen()){
+      /* Not fullscreen — always visible */
+      if(bar.classList.contains('__wphidden')) showBar();
+      return;
+    }
     var v=vid(); if(!v) return;
     if(v.paused){
+      /* Paused → must be visible */
       if(bar.classList.contains('__wphidden')) showBar();
     }
-  }, 1000);
+  }, 250);
   function onActivity(){ if(!isFullscreen()) return; showBar(); maybeHideBar(); }
   document.addEventListener('mousemove',  onActivity);
   document.addEventListener('touchstart', onActivity, {passive:true});
