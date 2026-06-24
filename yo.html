@@ -4101,14 +4101,27 @@ function init(){
   function maybeHideBar(){
     if(!isFullscreen()) return;
     var v=vid();
-    if(v&&!v.paused){
+    if(v && !v.paused){
       hideTimer=setTimeout(function(){
+        /* Re-check at fire time — paused or not-fullscreen now? Bail out. */
+        var v2=vid();
+        if(!v2 || v2.paused || !isFullscreen()) return;
         bar.classList.add('__wphidden');
         if(panel) panel.classList.add('__wphidden');
         if(reactionsPanel) reactionsPanel.classList.add('__wphidden');
       },2500);
     }
   }
+
+  /* Safety poll — every 1s ensure visibility matches video state.
+     Catches edge cases where pause events miss (e.g. video element swapped). */
+  setInterval(function(){
+    if(!isFullscreen()) return;
+    var v=vid(); if(!v) return;
+    if(v.paused){
+      if(bar.classList.contains('__wphidden')) showBar();
+    }
+  }, 1000);
   function onActivity(){ if(!isFullscreen()) return; showBar(); maybeHideBar(); }
   document.addEventListener('mousemove',  onActivity);
   document.addEventListener('touchstart', onActivity, {passive:true});
